@@ -10,12 +10,12 @@ using System.Windows;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using FTHexMerge.Core;
-using FTHexMerge.Views;
-using FTHexMerge.Models;
+using HexMerge.Core;
+using HexMerge.Views;
+using HexMerge.Models;
 using Microsoft.Win32;
 
-namespace FTHexMerge.ViewModels
+namespace HexMerge.ViewModels
 {
     /// <summary>
     /// 比较视图的视图模型：WinMerge 风格地址轴（每行地址 + 16 字节）。
@@ -388,7 +388,7 @@ namespace FTHexMerge.ViewModels
                 int unconfirmed = CountUnconfirmedConflictSegments();
                 if (unconfirmed > 0)
                 {
-                    CardDialog.Show("FTHexMerge",
+                    CardDialog.Show("HexMerge",
                         string.Format("当前为「无」优先级模式，还有 {0} 个冲突段未手动确认，请逐个选择后再合并。", unconfirmed));
                     StatusMessage = string.Format("有 {0} 个冲突段未确认，无法合并。", unconfirmed);
                     return;

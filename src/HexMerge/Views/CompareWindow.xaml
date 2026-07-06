@@ -1,8 +1,7 @@
-<Window x:Class="FTHexMerge.Views.CompareWindow"
+<Window x:Class="HexMerge.Views.CompareWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="FTHexMerge" Height="675.721" Width="1141.648"
-        Icon="pack://application:,,,/Resources/icon/ft.ico"
+        Title="HexMerge" Height="675.721" Width="1141.648"
         WindowStartupLocation="CenterScreen" Background="#F0F0F0" FontSize="12"
         TextOptions.TextFormattingMode="Display">
     <DockPanel LastChildFill="True">

@@ -1,9 +1,9 @@
 using System;
 using System.Globalization;
 using System.IO;
-using FTHexMerge.Models;
+using HexMerge.Models;
 
-namespace FTHexMerge.Core
+namespace HexMerge.Core
 {
     /// <summary>
     /// Intel HEX 文件解析器。支持 I8/I16/I32。

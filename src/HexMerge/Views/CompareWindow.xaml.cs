@@ -9,10 +9,10 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
-using FTHexMerge.Models;
-using FTHexMerge.ViewModels;
+using HexMerge.Models;
+using HexMerge.ViewModels;
 
-namespace FTHexMerge.Views
+namespace HexMerge.Views
 {
     /// <summary>
     /// 比较视图窗口：定位栏（鸟瞰，自绘）+ 自绘比较网格 <see cref="HexCompareView"/> + 滚动条。
@@ -40,7 +40,7 @@ namespace FTHexMerge.Views
         public CompareWindow(string[] paths, uint[] baseAddrs, MemoryImage[] images)
         {
             InitializeComponent();
-            Title = AppInfo.Title; // 统一标题：FTHexMerge V{版本}
+            Title = AppInfo.Title; // 统一标题：HexMerge V{版本}
             _vm = new CompareViewModel();
             DataContext = _vm;
             _paths = paths;
@@ -450,15 +450,11 @@ namespace FTHexMerge.Views
             header.Child = hg;
             Grid.SetRow(header, 0);
 
-            // 内容：图标 + 程序名 + 版本 + 简述 + 网址 + 确定
+            // 内容：程序名 + 版本 + 简述 + 确定
             StackPanel body = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 18, 0, 16) };
-            Image icon = new Image { Width = 48, Height = 48, Margin = new Thickness(0, 0, 0, 10), HorizontalAlignment = HorizontalAlignment.Center };
-            try { icon.Source = new BitmapImage(new Uri("pack://application:,,,/Resources/icon/ft.ico", UriKind.Absolute)); } catch { }
-            body.Children.Add(icon);
-            body.Children.Add(new TextBlock { Text = "FTHexMerge", FontSize = 18, FontWeight = FontWeights.Bold, Foreground = ink, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 2) });
+            body.Children.Add(new TextBlock { Text = "HexMerge", FontSize = 18, FontWeight = FontWeights.Bold, Foreground = ink, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 2) });
             body.Children.Add(new TextBlock { Text = "版本 " + AppInfo.Version, FontSize = 11, Foreground = muted, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 12) });
-            body.Children.Add(new TextBlock { Text = "嵌入式芯片 HEX 文件合并工具", FontSize = 11, Foreground = muted, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 4) });
-            body.Children.Add(new TextBlock { Text = "www.fortiortech.com", FontSize = 11, Foreground = accent, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 16) });
+            body.Children.Add(new TextBlock { Text = "嵌入式芯片 HEX 文件合并工具", FontSize = 11, Foreground = muted, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 16) });
             Button ok = new Button { Content = "确定", Width = 110, Padding = new Thickness(0, 6, 0, 6), Style = (Style)FindResource("PrimaryButton"), IsDefault = true, HorizontalAlignment = HorizontalAlignment.Center };
             ok.Click += (s, ev) => w.Close();
             body.Children.Add(ok);

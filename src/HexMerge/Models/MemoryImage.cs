@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace FTHexMerge.Models
+namespace HexMerge.Models
 {
     /// <summary>
     /// 单个文件的字节级地址映射：地址 -> 字节值。

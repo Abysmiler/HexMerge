@@ -1,4 +1,4 @@
-namespace FTHexMerge.Models
+namespace HexMerge.Models
 {
     /// <summary>
     /// 一段连续的地址区间 [Start, End]（含两端）。

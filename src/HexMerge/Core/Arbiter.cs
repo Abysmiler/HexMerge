@@ -1,7 +1,7 @@
 using System.Collections.Generic;
-using FTHexMerge.Models;
+using HexMerge.Models;
 
-namespace FTHexMerge.Core
+namespace HexMerge.Core
 {
     /// <summary>
     /// 字节级仲裁器（WinMerge 式逐块选择 + 文件优先级默认填充）。

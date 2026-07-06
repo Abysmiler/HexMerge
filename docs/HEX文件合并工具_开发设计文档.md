@@ -1,6 +1,6 @@
 # HEX 文件合并工具 — 开发设计文档
 
-> 日期：2026-07-01 ｜ 平台：**.NET Framework 4.8 + WPF** ｜ 用途：公司内部使用，不对外售卖
+> 日期：2026-07-01 ｜ 平台：**.NET Framework 4.8 + WPF** ｜ 用途：个人项目
 > 配套：`HEX文件合并工具开发需求说明书.docx`、`HEX文件合并工具_可行性分析报告.md`
 
 ---
@@ -66,9 +66,9 @@
 ## 四、架构（单工程，已建）
 
 ```
-FTHexMerge\
-├─ Src\ExeProject\FTHexMerge\         (WPF 应用，.NET 4.8，已建)
-│   ├─ FTHexMerge.sln / FTHexMerge.csproj
+HexMerge\
+├─ Src\ExeProject\HexMerge\         (WPF 应用，.NET 4.8，已建)
+│   ├─ HexMerge.sln / HexMerge.csproj
 │   ├─ Core\        HexParser, BinaryDatParser, ConflictDetector, Arbiter, HexWriter, RoundTripVerifier
 │   ├─ Models\      MemoryImage, Segment
 │   ├─ Mvvm\        （用 CommunityToolkit.Mvvm；自定义命令/转换器放这）
@@ -81,7 +81,7 @@ FTHexMerge\
 └─ Src\TestProject\                  测试工程（可选；4.8 下用 NUnit 3 + 测试资源管理器）
 ```
 
-**命名空间**：`FTHexMerge`（Core 算法在 `FTHexMerge.Core`）。
+**命名空间**：`HexMerge`（Core 算法在 `HexMerge.Core`）。
 **分层**：`Core\` 为纯 C# 算法（不引用 WPF），可被测试工程直接测试；`Views\`/`ViewModels\` 负责交互。**输出**指向 `Bin.Net\`。
 
 ---
@@ -181,9 +181,9 @@ FTHexMerge\
 
 ## 十、工程现状（已建）
 
-- **ExeProject/FTHexMerge**：WPF .NET Framework **4.8**，已建；`App.xaml`/`MainWindow.xaml` 为 VS 默认；输出 `..\..\..\Bin.Net\`。
+- **ExeProject/HexMerge**：WPF .NET Framework **4.8**，已建；`App.xaml`/`MainWindow.xaml` 为 VS 默认；输出 `..\..\..\Bin.Net\`。
 - **待建业务文件夹**（开发时逐个加，并同步在 csproj 加 `<Compile Include>`）：`Core`、`Models`、`Mvvm`、`ViewModels`、`Views`、`Controls`。
-- **TestProject**（可选）：4.8 下建「NUnit 测试项目(.NET Framework)」，引用 FTHexMerge，用测试资源管理器跑。
+- **TestProject**（可选）：4.8 下建「NUnit 测试项目(.NET Framework)」，引用 HexMerge，用测试资源管理器跑。
 - 其余空目录（FwProject/DllProject/LibProject/Include/MakeFile）暂留空。
 
 ---
@@ -203,13 +203,13 @@ FTHexMerge\
 ## 十二、后续迭代待办（MVP 之后）
 
 **✅ 已完成（迭代补齐）**：
-空隙填充三选项 ｜ 导出前预览弹窗（段列表+摘要）｜ 图形地址轴（定位栏：鸟瞰+视口拇指+可拖+第一文件色）｜ 一键优先级菜单 ｜ 上一个/下一个冲突跳转 ｜ 重新比较/退出菜单 ｜ DAT 手动基地址输入框 ｜ 自绘重写 HexCompareView（消除滚动卡顿）｜ 版本号集中管理（AssemblyInfo + AppInfo，窗口标题 FTHexMerge V1.0.0.1）｜ **05 起始执行地址（解析记录+输出保留）** ｜ **到 DFlash 间隙识别（DAT 基地址）** ｜ **菜单重组（4 顶级）+ 关于框** ｜ **键盘 ↑/↓ 导航** ｜ **流式解析（防 OOM）** ｜ **解析后台化（防 UI 假死）** ｜ **FindUnit 字典化 + 定位栏合并同色段 + 段信息渲染缓存** ｜ **FirmwareLoader 提取 + HexPalette 配色集中**
+空隙填充三选项 ｜ 导出前预览弹窗（段列表+摘要）｜ 图形地址轴（定位栏：鸟瞰+视口拇指+可拖+第一文件色）｜ 一键优先级菜单 ｜ 上一个/下一个冲突跳转 ｜ 重新比较/退出菜单 ｜ DAT 手动基地址输入框 ｜ 自绘重写 HexCompareView（消除滚动卡顿）｜ 版本号集中管理（AssemblyInfo + AppInfo，窗口标题 HexMerge V1.0.0.1）｜ **05 起始执行地址（解析记录+输出保留）** ｜ **到 DFlash 间隙识别（DAT 基地址）** ｜ **菜单重组（4 顶级）+ 关于框** ｜ **键盘 ↑/↓ 导航** ｜ **流式解析（防 OOM）** ｜ **解析后台化（防 UI 假死）** ｜ **FindUnit 字典化 + 定位栏合并同色段 + 段信息渲染缓存** ｜ **FirmwareLoader 提取 + HexPalette 配色集中**
 
 **⏳ 仍待办**：
 - 段列表表格视图（需求 3.2.1）
 - 冲突详情弹窗（需求 3.2.3，当前用右键段菜单替代）
 - 段级勾选/全选/反选（需求 3.3.1，当前用源选择替代）
-- 删除 `FTHexMerge - 副本` 备份文件夹（源码树清理）
+- 删除 `HexMerge - 副本` 备份文件夹（源码树清理）
 
 ---
 
@@ -221,7 +221,7 @@ FTHexMerge\
 - **05 起始执行地址**：`HexParser` 解析时记录到 `MemoryImage.StartLinearAddress`（不作数据合并）；`HexWriter.Write` 加重载，EOF 前输出类型 05 记录；`CompareViewModel.PickStartLinearAddress` 按优先级取首个含 05 文件入口。
 - **到 DFlash 间隙识别**：`Load` 扫描 `.dat` 取基地址最小值作 DFlash 起点；`ComputePreview`/`ApplyGapFill` 对落点跨 DFlash 的间隙默认忽略并单独提示（预览浅蓝块 + 状态栏）。
 - **间隙填充阈值**：定 1MB（`GapFillMaxBytes`）。曾抬到 32MB 导致 Full.hex 膨胀到 41MB + 32 位进程 OOM，回退 1MB，并在注释写明两道硬约束。
-- **菜单重组**：顶级 5→4（文件/合并/导航/帮助），优先级·空隙填充收进「合并」；新增「帮助 → 关于」（FTHexMerge V版本 + www.fortiortech.com）。
+- **菜单重组**：顶级 5→4（文件/合并/导航/帮助），优先级·空隙填充收进「合并」；新增「帮助 → 关于」（HexMerge V版本）。
 - **合并预览**：段与间隙各自成行、统一对齐，间隙行末标「(间隙)」。
 
 **健壮性 / 性能**

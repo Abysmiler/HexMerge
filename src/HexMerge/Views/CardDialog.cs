@@ -4,7 +4,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 
-namespace FTHexMerge.Views
+namespace HexMerge.Views
 {
     /// <summary>
     /// 通用卡片式对话框（无边框圆角卡片 + 主题色 + 标题栏可拖动 + 投影），

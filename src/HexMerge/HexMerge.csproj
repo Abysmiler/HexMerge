@@ -6,15 +6,14 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{82292BA8-C1C0-41D1-A9BD-FC750C51D083}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>FTHexMerge</RootNamespace>
-    <AssemblyName>FTHexMerge</AssemblyName>
+    <RootNamespace>HexMerge</RootNamespace>
+    <AssemblyName>HexMerge</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{60dc8134-eba5-43b8-bcc9-bb4bc16c2548};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <WarningLevel>4</WarningLevel>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
-    <ApplicationIcon>Resources\icon\ft.ico</ApplicationIcon>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
   </PropertyGroup>
@@ -130,7 +129,6 @@ move /Y "$(TargetDir)*.dll" "$(TargetDir)bin\"</PostBuildEvent>
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <Resource Include="Resources\icon\ft.ico" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Models\MemoryImage.cs" />

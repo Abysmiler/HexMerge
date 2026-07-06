@@ -1,8 +1,8 @@
-using FTHexMerge.ViewModels;
-using FTHexMerge.Views;
+using HexMerge.ViewModels;
+using HexMerge.Views;
 using NUnit.Framework;
 
-namespace FTHexMerge.Tests
+namespace HexMerge.Tests
 {
     /// <summary>
     /// HexCellPaint 着色决策测试（纯逻辑，不加载 WPF 渲染管线）。

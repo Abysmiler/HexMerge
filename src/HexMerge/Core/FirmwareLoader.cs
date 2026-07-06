@@ -1,8 +1,8 @@
 using System;
 using System.IO;
-using FTHexMerge.Models;
+using HexMerge.Models;
 
-namespace FTHexMerge.Core
+namespace HexMerge.Core
 {
     /// <summary>
     /// 固件文件加载分发：按扩展名选 HEX 或 DAT 解析器。

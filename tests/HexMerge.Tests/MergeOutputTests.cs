@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.IO;
-using FTHexMerge.Core;
+using HexMerge.Core;
 using NUnit.Framework;
 
-namespace FTHexMerge.Tests
+namespace HexMerge.Tests
 {
     [TestFixture]
     public class MergeOutputTests

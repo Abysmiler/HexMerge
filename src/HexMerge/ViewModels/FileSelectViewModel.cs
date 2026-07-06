@@ -9,11 +9,11 @@ using System.Windows;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using FTHexMerge.Core;
-using FTHexMerge.Models;
+using HexMerge.Core;
+using HexMerge.Models;
 using Microsoft.Win32;
 
-namespace FTHexMerge.ViewModels
+namespace HexMerge.ViewModels
 {
     /// <summary>
     /// 文件选择窗的视图模型（参考 WinMerge 打开对话框：分组 + 交换 + 状态栏）。

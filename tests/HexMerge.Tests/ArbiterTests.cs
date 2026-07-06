@@ -1,9 +1,9 @@
 using System.Collections.Generic;
-using FTHexMerge.Core;
-using FTHexMerge.Models;
+using HexMerge.Core;
+using HexMerge.Models;
 using NUnit.Framework;
 
-namespace FTHexMerge.Tests
+namespace HexMerge.Tests
 {
     [TestFixture]
     public class ArbiterTests

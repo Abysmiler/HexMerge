@@ -1,10 +1,10 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using FTHexMerge.Models;
-using FTHexMerge.ViewModels;
+using HexMerge.Models;
+using HexMerge.ViewModels;
 
-namespace FTHexMerge.Views
+namespace HexMerge.Views
 {
     /// <summary>
     /// FileSelectWindow 的交互逻辑。处理拖拽（路径设置）；
@@ -20,7 +20,7 @@ namespace FTHexMerge.Views
         public FileSelectWindow(string[] paths, uint[] baseAddrs)
         {
             InitializeComponent();
-            Title = AppInfo.Title; // 统一标题：FTHexMerge V{版本}
+            Title = AppInfo.Title; // 统一标题：HexMerge V{版本}
             _vm = new FileSelectViewModel();
             DataContext = _vm;
             _vm.CompareSucceeded += OnCompareSucceeded;

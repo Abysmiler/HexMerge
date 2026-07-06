@@ -6,9 +6,9 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
-using FTHexMerge.ViewModels;
+using HexMerge.ViewModels;
 
-namespace FTHexMerge.Views
+namespace HexMerge.Views
 {
     /// <summary>
     /// 比较视图自绘控件：用 OnRender 直接画"地址 + 每文件 16 字节"网格，

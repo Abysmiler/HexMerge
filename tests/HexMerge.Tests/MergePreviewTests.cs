@@ -1,8 +1,8 @@
 using System.Collections.Generic;
-using FTHexMerge.ViewModels;
+using HexMerge.ViewModels;
 using NUnit.Framework;
 
-namespace FTHexMerge.Tests
+namespace HexMerge.Tests
 {
     /// <summary>
     /// CompareViewModel.ComputePreview 预览摘要计算测试（纯函数，不依赖 WPF）。

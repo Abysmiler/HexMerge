@@ -1,6 +1,6 @@
-using FTHexMerge.ViewModels;
+using HexMerge.ViewModels;
 
-namespace FTHexMerge.Views
+namespace HexMerge.Views
 {
     /// <summary>
     /// 比较视图的着色决策（纯逻辑，不引用 System.Windows.Media，便于单元测试）。

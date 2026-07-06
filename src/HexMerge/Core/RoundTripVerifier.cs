@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.IO;
-using FTHexMerge.Models;
+using HexMerge.Models;
 
-namespace FTHexMerge.Core
+namespace HexMerge.Core
 {
     /// <summary>
     /// 逐字节回读校验器：把输出文件再解析一遍，与仲裁结果逐字节比对。

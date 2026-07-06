@@ -1,7 +1,7 @@
 using System.IO;
-using FTHexMerge.Models;
+using HexMerge.Models;
 
-namespace FTHexMerge.Core
+namespace HexMerge.Core
 {
     /// <summary>
     /// 二进制 .dat 文件解析器。

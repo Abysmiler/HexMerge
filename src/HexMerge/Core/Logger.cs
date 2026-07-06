@@ -1,10 +1,10 @@
 using System;
 using System.IO;
 
-namespace FTHexMerge.Core
+namespace HexMerge.Core
 {
     /// <summary>
-    /// 简易文件日志器。日志写到程序目录下 logs\FTHexMerge.log，供出错时让用户提供排查。
+    /// 简易文件日志器。日志写到程序目录下 logs\HexMerge.log，供出错时让用户提供排查。
     /// 线程安全（lock）；写日志失败一律静默——日志本身绝不应影响主程序运行。
     /// </summary>
     public static class Logger
@@ -23,7 +23,7 @@ namespace FTHexMerge.Core
                 try
                 {
                     Directory.CreateDirectory(logDirectory);
-                    _logPath = Path.Combine(logDirectory, "FTHexMerge.log");
+                    _logPath = Path.Combine(logDirectory, "HexMerge.log");
                 }
                 catch
                 {

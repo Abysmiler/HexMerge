@@ -1,7 +1,7 @@
 using System.Collections.Generic;
-using FTHexMerge.Models;
+using HexMerge.Models;
 
-namespace FTHexMerge.Core
+namespace HexMerge.Core
 {
     /// <summary>
     /// 字节级冲突检测器。把多个文件的 MemoryImage 合并到统一地址空间，

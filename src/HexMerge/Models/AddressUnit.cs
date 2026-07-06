@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace FTHexMerge.Models
+namespace HexMerge.Models
 {
     /// <summary>
     /// 一个地址单元的比对结果：该地址在各文件中的字节情况。

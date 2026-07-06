@@ -1,7 +1,7 @@
-using FTHexMerge.ViewModels;
+using HexMerge.ViewModels;
 using NUnit.Framework;
 
-namespace FTHexMerge.Tests
+namespace HexMerge.Tests
 {
     /// <summary>
     /// CompareViewModel 的冲突段跳转逻辑测试（纯逻辑，不依赖 WPF 渲染）。

@@ -3,10 +3,10 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
-using FTHexMerge.Core;
-using FTHexMerge.Views;
+using HexMerge.Core;
+using HexMerge.Views;
 
-namespace FTHexMerge
+namespace HexMerge
 {
     /// <summary>
     /// App.xaml 的交互逻辑。
@@ -19,9 +19,9 @@ namespace FTHexMerge
         {
             base.OnStartup(e);
 
-            // 日志初始化：写到程序目录下 logs\FTHexMerge.log
+            // 日志初始化：写到程序目录下 logs\HexMerge.log
             Logger.Init(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs"));
-            Logger.Info("FTHexMerge 启动，版本 V" + AppInfo.Version);
+            Logger.Info("HexMerge 启动，版本 V" + AppInfo.Version);
 
             // 全局异常兜底：UI 线程
             DispatcherUnhandledException += App_DispatcherUnhandledException;
@@ -55,7 +55,7 @@ namespace FTHexMerge
             if (_recentErrors >= MaxRecentErrors)
             {
                 Logger.Error("短时间内异常过多，判定为循环崩溃，程序退出", null);
-                CardDialog.Show("FTHexMerge", "程序遇到严重错误，将退出以避免反复弹窗。\n请联系开发人员提供日志（logs 文件夹）。");
+                CardDialog.Show("HexMerge", "程序遇到严重错误，将退出以避免反复弹窗。\n请联系开发人员提供日志（logs 文件夹）。");
                 Environment.Exit(1);
                 return;
             }
@@ -88,7 +88,7 @@ namespace FTHexMerge
         /// <summary>向用户显示简单的出错提示（详细信息已写入日志，由开发人员排查）。</summary>
         private static void ShowError()
         {
-            CardDialog.Show("FTHexMerge", "程序遇到错误，请稍后重试。");
+            CardDialog.Show("HexMerge", "程序遇到错误，请稍后重试。");
         }
     }
 }

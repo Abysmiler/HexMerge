@@ -3,7 +3,7 @@
 > 日期：2026-06-29
 > 状态：已确认，待编写实施计划
 > 目标平台：Windows 桌面（WPF, .NET Framework 3.5）
-> 使用场景：公司内部使用，不对外售卖
+> 使用场景：个人项目
 
 ---
 
@@ -59,8 +59,8 @@
 采用**单工程**结构（不拆 Core / App / Fw / Dll / Lib 独立工程）：全部代码（Core 算法 + 手写 MVVM + UI）集中在一个 WPF 应用工程 `ExeProject/HexMerge` 内，按文件夹分层；测试单独一个工程。
 
 ```
-D:\Software\FTHexMerge\
-├─ FTHexMerge.sln
+D:\Software\HexMerge\
+├─ HexMerge.sln
 ├─ Bin.Net\                      ExeProject 编译输出（exe + dll）
 ├─ Lib.Net\nunit.framework.dll   NUnit 2.6.x（测试依赖）
 ├─ Doc\                          需求 / 可行性 / spec
