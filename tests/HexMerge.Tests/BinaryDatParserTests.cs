@@ -69,7 +69,7 @@ namespace HexMerge.Tests
             string d = TestContext.CurrentContext.TestDirectory;
             for (int i = 0; i < 6; i++)
             {
-                string candidate = Path.Combine(d, "Doc", name);
+                string candidate = Path.Combine(d, "samples", name);
                 if (File.Exists(candidate)) return candidate;
                 d = Path.GetFullPath(Path.Combine(d, ".."));
             }

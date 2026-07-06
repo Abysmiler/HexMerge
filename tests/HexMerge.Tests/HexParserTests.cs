@@ -194,7 +194,7 @@ namespace HexMerge.Tests
             string d = TestContext.CurrentContext.TestDirectory;
             for (int i = 0; i < 6; i++)
             {
-                string candidate = System.IO.Path.Combine(d, "Doc", name);
+                string candidate = System.IO.Path.Combine(d, "samples", name);
                 if (System.IO.File.Exists(candidate)) return candidate;
                 d = System.IO.Path.GetFullPath(System.IO.Path.Combine(d, ".."));
             }
