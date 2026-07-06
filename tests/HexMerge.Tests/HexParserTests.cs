@@ -1,10 +1,10 @@
 using System.IO;
 using System.Text;
-using HexMerge.Core;
-using HexMerge.Models;
+using FTHexMerge.Core;
+using FTHexMerge.Models;
 using NUnit.Framework;
 
-namespace HexMerge.Tests
+namespace FTHexMerge.Tests
 {
     [TestFixture]
     public class HexParserTests

@@ -1,0 +1,48 @@
+<Window x:Class="FTHexMerge.Views.CompareWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="FTHexMerge" Height="675.721" Width="1141.648"
+        Icon="pack://application:,,,/Resources/icon/ft.ico"
+        WindowStartupLocation="CenterScreen" Background="#F0F0F0" FontSize="12"
+        TextOptions.TextFormattingMode="Display">
+    <DockPanel LastChildFill="True">
+        <!-- 顶部菜单栏 -->
+        <Menu DockPanel.Dock="Top" Background="#ECECEC" Padding="4,2" FontSize="12">
+            <MenuItem Header="文件">
+                <MenuItem Header="重新比较…" Click="Recompare_Click" ToolTip="返回文件选择窗，重新选择文件比较"/>
+                <Separator/>
+                <MenuItem Header="退出" Click="Exit_Click"/>
+            </MenuItem>
+            <MenuItem Header="合并">
+                <MenuItem x:Name="MenuPriority" Header="优先级"/>
+                <MenuItem x:Name="MenuFill" Header="空隙填充"/>
+                <Separator/>
+                <MenuItem Header="保存 Full.hex…" Command="{Binding MergeCommand}"/>
+            </MenuItem>
+            <MenuItem Header="导航">
+                <MenuItem Header="上一个冲突" Click="PrevConflict_Click"
+                          ToolTip="跳转到上一个冲突段（到开头自动回绕）"/>
+                <MenuItem Header="下一个冲突" Click="NextConflict_Click"
+                          ToolTip="跳转到下一个冲突段（到末尾自动回绕）"/>
+                <Separator/>
+                <MenuItem x:Name="MenuToggleNavigator" Header="冲突导航浮窗" IsCheckable="True" Click="ToggleNavigator_Click"
+                          ToolTip="显示/隐藏 冲突导航浮窗"/>
+                <!-- 查找功能暂时屏蔽
+                <Separator/>
+                <MenuItem Header="转到地址…" Click="GotoAddress_Click" InputGestureText="Ctrl+F"/>
+                -->
+            </MenuItem>
+            <MenuItem Header="帮助">
+                <MenuItem Header="关于" Click="About_Click"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- 底部状态栏 -->
+        <Border DockPanel.Dock="Bottom" Background="#E8E8E8" BorderBrush="#ABADB3" BorderThickness="1" Padding="6" Margin="0,4,0,0" CornerRadius="2">
+            <TextBlock Text="{Binding StatusMessage, Mode=OneWay}" TextTrimming="CharacterEllipsis"/>
+        </Border>
+
+        <!-- 主区：定位栏 + 文件1 + 文件2 (+文件3)，由代码后置动态构建 -->
+        <Grid x:Name="CompareHost" Margin="2,4,2,2"/>
+    </DockPanel>
+</Window>

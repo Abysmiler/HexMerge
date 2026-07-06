@@ -1,0 +1,119 @@
+<Window x:Class="FTHexMerge.Views.FileSelectWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="FTHexMerge" Height="475" Width="640"
+        Icon="pack://application:,,,/Resources/icon/ft.ico"
+        ResizeMode="CanMinimize" WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource AppBgBrush}" FontSize="12"
+        AllowDrop="True" PreviewDragOver="Window_DragOver" PreviewDrop="Window_Drop"
+        TextOptions.TextFormattingMode="Display">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <!-- 配色与样式集中到 Views/Theme.xaml（App.Resources 全局合并），本窗只引用，便于全应用统一主题 -->
+    </Window.Resources>
+
+    <Grid Margin="14">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 第1组文件 -->
+        <Border Grid.Row="0" Style="{StaticResource Card}" Margin="0,0,0,8">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                    <Border Width="3" Height="14" Background="{StaticResource AccentBrush}" CornerRadius="2" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                    <TextBlock Text="第1组文件 (1)" FontWeight="SemiBold" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="浏览…" Width="80" Margin="8,0,0,0" Padding="0,5"
+                            Style="{StaticResource SecondaryButton}" Command="{Binding Browse1Command}"/>
+                    <TextBox Text="{Binding Path1, UpdateSourceTrigger=PropertyChanged}"
+                             FontFamily="Consolas" Style="{StaticResource InputBox}"/>
+                </DockPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,0" Visibility="{Binding BaseAddrVisible1, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="DAT 基地址：" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBox Text="{Binding BaseAddr1, UpdateSourceTrigger=PropertyChanged}" Width="120" FontFamily="Consolas" Style="{StaticResource InputBox}"/>
+                </StackPanel>
+                <!-- 交换组功能暂时屏蔽
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                    <Button Content="↔" Width="32" Padding="0" Style="{StaticResource SecondaryButton}" Command="{Binding Swap12Command}"/>
+                    <TextBlock Text="交换组1与组2" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                </StackPanel>
+                -->
+            </StackPanel>
+        </Border>
+
+        <!-- 第2组文件 -->
+        <Border Grid.Row="1" Style="{StaticResource Card}" Margin="0,0,0,8">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                    <Border Width="3" Height="14" Background="{StaticResource AccentBrush}" CornerRadius="2" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                    <TextBlock Text="第2组文件 (2)" FontWeight="SemiBold" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="浏览…" Width="80" Margin="8,0,0,0" Padding="0,5"
+                            Style="{StaticResource SecondaryButton}" Command="{Binding Browse2Command}"/>
+                    <TextBox Text="{Binding Path2, UpdateSourceTrigger=PropertyChanged}"
+                             FontFamily="Consolas" Style="{StaticResource InputBox}"/>
+                </DockPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,0" Visibility="{Binding BaseAddrVisible2, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="DAT 基地址：" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBox Text="{Binding BaseAddr2, UpdateSourceTrigger=PropertyChanged}" Width="120" FontFamily="Consolas" Style="{StaticResource InputBox}"/>
+                </StackPanel>
+                <!-- 交换组功能暂时屏蔽
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                    <Button Content="↔" Width="32" Padding="0" Style="{StaticResource SecondaryButton}" Command="{Binding Swap23Command}"/>
+                    <TextBlock Text="交换组2与组3" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                </StackPanel>
+                -->
+            </StackPanel>
+        </Border>
+
+        <!-- 第3组文件（可选） -->
+        <Border Grid.Row="2" Style="{StaticResource Card}" Margin="0,0,0,8">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                    <Border Width="3" Height="14" Background="{StaticResource AccentBrush}" CornerRadius="2" VerticalAlignment="Center" Margin="0,0,7,0"/>
+                    <TextBlock Text="第3组文件（可选） (3)" FontWeight="SemiBold" Foreground="{StaticResource InkBrush}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="浏览…" Width="80" Margin="8,0,0,0" Padding="0,5"
+                            Style="{StaticResource SecondaryButton}" Command="{Binding Browse3Command}"/>
+                    <TextBox Text="{Binding Path3, UpdateSourceTrigger=PropertyChanged}"
+                             FontFamily="Consolas" Style="{StaticResource InputBox}"/>
+                </DockPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,0" Visibility="{Binding BaseAddrVisible3, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="DAT 基地址：" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBox Text="{Binding BaseAddr3, UpdateSourceTrigger=PropertyChanged}" Width="120" FontFamily="Consolas" Style="{StaticResource InputBox}"/>
+                </StackPanel>
+                <!-- 交换组功能暂时屏蔽
+                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                    <Button Content="↔" Width="32" Padding="0" Style="{StaticResource SecondaryButton}" Command="{Binding Swap13Command}"/>
+                    <TextBlock Text="交换组1与组3" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                </StackPanel>
+                -->
+            </StackPanel>
+        </Border>
+
+        <!-- 结果摘要 -->
+        <Border Grid.Row="3" Background="White" BorderBrush="{StaticResource CardBorderBrush}" BorderThickness="1" CornerRadius="8">
+            <TextBox Text="{Binding ResultMessage, Mode=OneWay}" IsReadOnly="True" BorderThickness="0"
+                     VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" Background="Transparent"
+                     FontFamily="Consolas" Foreground="{StaticResource InkBrush}" Padding="8,6"/>
+        </Border>
+
+        <!-- 底部：状态栏 + 按钮 -->
+        <DockPanel Grid.Row="4" Margin="0,10,0,0" LastChildFill="False">
+            <TextBlock DockPanel.Dock="Left" Text="{Binding StatusMessage, Mode=OneWay}"
+                       Foreground="{StaticResource InkBrush}" VerticalAlignment="Center" Margin="0,0,12,0" TextTrimming="CharacterEllipsis"/>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Content="取消" Width="90" Margin="0,0,8,0" Padding="0,6" Style="{StaticResource SecondaryButton}" Click="Cancel_Click"/>
+                <Button Content="比较" Width="90" Padding="0,6" Style="{StaticResource PrimaryButton}" Command="{Binding CompareCommand}" IsDefault="True"/>
+            </StackPanel>
+        </DockPanel>
+    </Grid>
+</Window>

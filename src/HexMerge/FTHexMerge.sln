@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.36128.20
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HexMerge", "src\HexMerge\HexMerge.csproj", "{82292BA8-C1C0-41D1-A9BD-FC750C51D083}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FTHexMerge", "FTHexMerge.csproj", "{82292BA8-C1C0-41D1-A9BD-FC750C51D083}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HexMerge.Tests", "tests\HexMerge.Tests\HexMerge.Tests.csproj", "{7A13C30F-0327-485A-A70A-D9885BC98CC4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FTHexMerge.Tests", "..\..\TestProject\FTHexMerge.Tests\FTHexMerge.Tests.csproj", "{7A13C30F-0327-485A-A70A-D9885BC98CC4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

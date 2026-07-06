@@ -1,0 +1,119 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ============================================================
+         应用统一主题：配色 + 通用样式。改这里全应用生效（文件选择窗 + 冲突导航浮窗）。
+         取值来源：原浮窗 CompareWindow.xaml.cs:72-77 的硬编码色，已集中到此。
+    ============================================================ -->
+
+    <!-- 配色 -->
+    <SolidColorBrush x:Key="WindowBgBrush"         Color="#F5F6F8"/>  <!-- 浮窗标题栏底（轻盈，仅浮窗用） -->
+    <SolidColorBrush x:Key="AppBgBrush"            Color="#E5E8ED"/>  <!-- 主窗口背景（比浮窗深，白卡片浮起） -->
+    <SolidColorBrush x:Key="AccentBrush"           Color="#1976D2"/>  <!-- 主蓝：主按钮/强调 -->
+    <SolidColorBrush x:Key="AccentHoverBrush"      Color="#1565C0"/>  <!-- 主蓝 hover（同步加深） -->
+    <SolidColorBrush x:Key="MutedBrush"            Color="#6E7682"/>  <!-- 次要标签（加深，更易读） -->
+    <SolidColorBrush x:Key="InkBrush"              Color="#333333"/>  <!-- 主文字 -->
+    <SolidColorBrush x:Key="CardBorderBrush"       Color="#CFD4DA"/>  <!-- 卡片描边（加深，边界清晰） -->
+    <SolidColorBrush x:Key="NeutralBgBrush"        Color="#ECEFF1"/>  <!-- 次按钮底 -->
+    <SolidColorBrush x:Key="NeutralHoverBrush"     Color="#DFE3E7"/>  <!-- 次按钮 hover -->
+    <SolidColorBrush x:Key="SubtleBlueBgBrush"     Color="#F4F8FC"/>  <!-- 浮窗优先级框底 -->
+    <SolidColorBrush x:Key="SubtleBlueBorderBrush" Color="#E3ECF3"/>  <!-- 浮窗优先级框边 -->
+    <SolidColorBrush x:Key="IconHoverBrush"        Color="#E5E7EA"/>  <!-- 浮窗图标按钮 hover -->
+
+    <!-- 卡片：白底 + 浅边框 + 圆角8 -->
+    <Style x:Key="Card" TargetType="Border">
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Padding" Value="10,8"/>
+    </Style>
+
+    <!-- 主按钮：主蓝底 + 白字 + 圆角4 + hover 变深 -->
+    <Style x:Key="PrimaryButton" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{StaticResource AccentHoverBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Background" Value="{StaticResource AccentHoverBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Background" Value="#B0BEC5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 次按钮：浅灰底 + 主文字 + 圆角4 + hover 变深 -->
+    <Style x:Key="SecondaryButton" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource NeutralBgBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{StaticResource NeutralHoverBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Background" Value="{StaticResource NeutralHoverBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Background" Value="#F3F5F6"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 输入框：圆角4 + 浅边框 + 聚焦蓝边 -->
+    <Style x:Key="InputBox" TargetType="TextBox">
+        <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
+        <Setter Property="CaretBrush" Value="{StaticResource InkBrush}"/>
+        <Setter Property="SelectionBrush" Value="{StaticResource AccentBrush}"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="Padding" Value="6,4"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="bd" Background="White" BorderBrush="{StaticResource CardBorderBrush}"
+                            BorderThickness="1" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                        <ScrollViewer x:Name="PART_ContentHost" Focusable="False"
+                                      HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="BorderBrush" Value="#B8BEC6"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

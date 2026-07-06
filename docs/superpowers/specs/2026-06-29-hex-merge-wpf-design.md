@@ -3,7 +3,7 @@
 > 日期：2026-06-29
 > 状态：已确认，待编写实施计划
 > 目标平台：Windows 桌面（WPF, .NET Framework 3.5）
-> 使用场景：个人项目
+> 使用场景：公司内部使用，不对外售卖
 
 ---
 
@@ -30,7 +30,7 @@
 
 ## 三、许可与合规
 
-- **使用场景**：个人项目，不对外分发
+- **使用场景**：公司内部使用，不售卖、不对外分发
 - **WinMerge 关系**：仅参考其界面交互思路（思想不受版权保护），**代码 100% 原创实现**。WinMerge 为 GPL v2，**严禁复制 / 链接其任何代码**。
 - **第三方依赖**：仅采用宽松许可证（MIT / Apache-2.0 / .NET 官方许可），禁止 GPL / AGPL / LGPL
 - **无 AI 模型**：纯确定性算法，不内嵌任何预训练模型
@@ -59,8 +59,8 @@
 采用**单工程**结构（不拆 Core / App / Fw / Dll / Lib 独立工程）：全部代码（Core 算法 + 手写 MVVM + UI）集中在一个 WPF 应用工程 `ExeProject/HexMerge` 内，按文件夹分层；测试单独一个工程。
 
 ```
-D:\Software\HexMerge\
-├─ HexMerge.sln
+D:\Software\FTHexMerge\
+├─ FTHexMerge.sln
 ├─ Bin.Net\                      ExeProject 编译输出（exe + dll）
 ├─ Lib.Net\nunit.framework.dll   NUnit 2.6.x（测试依赖）
 ├─ Doc\                          需求 / 可行性 / spec
