@@ -21,6 +21,9 @@ packages/
 # Release / publish
 Release/
 
+# Docs (kept private — excluded from GitHub)
+docs/
+
 # Logs
 *.log
 
