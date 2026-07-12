@@ -1,86 +1,118 @@
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
-    <!-- ============================================================
-         应用统一主题：配色 + 通用样式。改这里全应用生效（文件选择窗 + 冲突导航浮窗）。
-         取值来源：原浮窗 CompareWindow.xaml.cs:72-77 的硬编码色，已集中到此。
-    ============================================================ -->
+    <!-- ============================================================================
+         HexMerge 设计系统（自定义皮，叠在 ModernWpf 之上）
+         定位：一台“读内存的精密仪器”。冷纸白画布 + 深岩板墨 + 单一深青 Signal 主色，
+         等宽字体的地址/字节读数当一等公民。改这里全应用生效。
 
-    <!-- 配色 -->
-    <SolidColorBrush x:Key="WindowBgBrush"         Color="#F5F6F8"/>  <!-- 浮窗标题栏底（轻盈，仅浮窗用） -->
-    <SolidColorBrush x:Key="AppBgBrush"            Color="#E5E8ED"/>  <!-- 主窗口背景（比浮窗深，白卡片浮起） -->
-    <SolidColorBrush x:Key="AccentBrush"           Color="#1976D2"/>  <!-- 主蓝：主按钮/强调 -->
-    <SolidColorBrush x:Key="AccentHoverBrush"      Color="#1565C0"/>  <!-- 主蓝 hover（同步加深） -->
-    <SolidColorBrush x:Key="MutedBrush"            Color="#6E7682"/>  <!-- 次要标签（加深，更易读） -->
-    <SolidColorBrush x:Key="InkBrush"              Color="#333333"/>  <!-- 主文字 -->
-    <SolidColorBrush x:Key="CardBorderBrush"       Color="#CFD4DA"/>  <!-- 卡片描边（加深，边界清晰） -->
-    <SolidColorBrush x:Key="NeutralBgBrush"        Color="#ECEFF1"/>  <!-- 次按钮底 -->
-    <SolidColorBrush x:Key="NeutralHoverBrush"     Color="#DFE3E7"/>  <!-- 次按钮 hover -->
-    <SolidColorBrush x:Key="SubtleBlueBgBrush"     Color="#F4F8FC"/>  <!-- 浮窗优先级框底 -->
-    <SolidColorBrush x:Key="SubtleBlueBorderBrush" Color="#E3ECF3"/>  <!-- 浮窗优先级框边 -->
-    <SolidColorBrush x:Key="IconHoverBrush"        Color="#E5E7EA"/>  <!-- 浮窗图标按钮 hover -->
+         主色 Signal（深青）刻意避开网格语义色 {黄=冲突/琥珀=差异/红=选定/灰=缺失/
+         蓝=选中行}，消除旧版“主色蓝与选中行蓝撞色”的问题。
+    ============================================================================ -->
 
-    <!-- 卡片：白底 + 浅边框 + 圆角8 -->
-    <Style x:Key="Card" TargetType="Border">
-        <Setter Property="Background" Value="White"/>
-        <Setter Property="BorderBrush" Value="{StaticResource CardBorderBrush}"/>
-        <Setter Property="BorderThickness" Value="1"/>
-        <Setter Property="CornerRadius" Value="8"/>
-        <Setter Property="Padding" Value="10,8"/>
-    </Style>
+    <!-- ===== 字体 token ===== -->
+    <!-- 界面/标签用系统 Segoe UI；所有地址/字节/段/数值一律等宽（仪器读数的“嗓音”）。 -->
+    <FontFamily x:Key="UiFont">Segoe UI</FontFamily>
+    <FontFamily x:Key="MonoFont">Cascadia Mono, Cascadia Code, Consolas, Courier New</FontFamily>
 
-    <!-- 主按钮：主蓝底 + 白字 + 圆角4 + hover 变深 -->
-    <Style x:Key="PrimaryButton" TargetType="Button">
-        <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
-        <Setter Property="Foreground" Value="White"/>
-        <Setter Property="FontWeight" Value="SemiBold"/>
-        <Setter Property="Cursor" Value="Hand"/>
-        <Setter Property="BorderThickness" Value="0"/>
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="Button">
-                    <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Border>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="{StaticResource AccentHoverBrush}"/>
-                        </Trigger>
-                        <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Background" Value="{StaticResource AccentHoverBrush}"/>
-                        </Trigger>
-                        <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Background" Value="#B0BEC5"/>
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
+    <!-- ===== 配色 token（语义命名；旧 key 在文件末尾做别名，兼容 code-behind） ===== -->
+    <Color x:Key="SignalColor">#0E7C86</Color>
 
-    <!-- 次按钮：浅灰底 + 主文字 + 圆角4 + hover 变深 -->
-    <Style x:Key="SecondaryButton" TargetType="Button">
-        <Setter Property="Background" Value="{StaticResource NeutralBgBrush}"/>
+    <SolidColorBrush x:Key="CanvasBrush"        Color="#F1F4F6"/>  <!-- 窗口画布底（冷纸白） -->
+    <SolidColorBrush x:Key="CanvasSunkenBrush"  Color="#E7ECEF"/>  <!-- 下沉区/装载台底，让白卡浮起 -->
+    <SolidColorBrush x:Key="SurfaceBrush"       Color="#FFFFFF"/>  <!-- 卡片/面板面 -->
+    <SolidColorBrush x:Key="SurfaceAltBrush"    Color="#F7F9FA"/>  <!-- 次级面（读数控制台/斑马） -->
+
+    <SolidColorBrush x:Key="InkStrongBrush"     Color="#0F1922"/>  <!-- 标题级墨 -->
+    <SolidColorBrush x:Key="InkBrush"           Color="#17222E"/>  <!-- 主文字 -->
+    <SolidColorBrush x:Key="MutedBrush"         Color="#5A6673"/>  <!-- 次要标签 -->
+    <SolidColorBrush x:Key="FaintBrush"         Color="#8A94A0"/>  <!-- 占位/更弱 -->
+
+    <SolidColorBrush x:Key="HairlineBrush"      Color="#DCE2E8"/>  <!-- 发丝分隔/描边 -->
+    <SolidColorBrush x:Key="HairlineStrongBrush" Color="#C7CFD8"/> <!-- 强一点的描边 -->
+
+    <SolidColorBrush x:Key="SignalBrush"        Color="#0E7C86"/>  <!-- 主色：主按钮/强调/焦点 -->
+    <SolidColorBrush x:Key="SignalHoverBrush"   Color="#0A626A"/>  <!-- 主色 hover 加深 -->
+    <SolidColorBrush x:Key="SignalPressedBrush" Color="#084E55"/>  <!-- 主色 按下 -->
+    <SolidColorBrush x:Key="SignalSoftBrush"    Color="#E4F0F1"/>  <!-- 主色淡染：地址通道/选中态底 -->
+    <SolidColorBrush x:Key="SignalSoftBorderBrush" Color="#BFDDDF"/><!-- 主色淡染边 -->
+
+    <SolidColorBrush x:Key="NeutralBrush"       Color="#EDF1F3"/>  <!-- 次按钮/中性底 -->
+    <SolidColorBrush x:Key="NeutralHoverBrush"  Color="#E1E7EA"/>  <!-- 次按钮 hover -->
+    <SolidColorBrush x:Key="DisabledBrush"      Color="#C3CDD3"/>  <!-- 禁用底 -->
+    <SolidColorBrush x:Key="OverlayHoverBrush"  Color="#14000000"/><!-- 透明控件 hover 薄叠加 -->
+
+    <SolidColorBrush x:Key="SuccessBrush"       Color="#1F7A5A"/>  <!-- 回读校验通过（成功绿） -->
+    <SolidColorBrush x:Key="SuccessSoftBrush"   Color="#E3F3EC"/>
+    <SolidColorBrush x:Key="WarningBrush"       Color="#9A6B00"/>  <!-- 超阈值间隙提醒 -->
+    <SolidColorBrush x:Key="WarningSoftBrush"   Color="#FBF0D6"/>
+    <SolidColorBrush x:Key="InfoSoftBrush"      Color="#E7F0F7"/>  <!-- DFlash 区间提示底 -->
+    <SolidColorBrush x:Key="InfoSoftBorderBrush" Color="#B9D3E6"/>
+
+    <!-- ===== 排版基元 ===== -->
+    <!-- 界面文本默认 -->
+    <Style x:Key="BodyText" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
         <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+    </Style>
+
+    <!-- 小标签/眉批：大写间距，用于 section 眉头 -->
+    <Style x:Key="Eyebrow" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
+        <Setter Property="Foreground" Value="{StaticResource MutedBrush}"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+    </Style>
+
+    <!-- 等宽读数：地址/字节/数值。仪器母题的载体。 -->
+    <Style x:Key="Readout" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource MonoFont}"/>
+        <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="TextOptions.TextFormattingMode" Value="Ideal"/>
+    </Style>
+
+    <!-- ===== 卡片：白面 + 发丝边 + 圆角10 ===== -->
+    <Style x:Key="Card" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+        <Setter Property="BorderBrush" Value="{StaticResource HairlineBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Padding" Value="14,12"/>
+    </Style>
+
+    <!-- ===== 主按钮：深青底 + 白字 + 圆角6 ===== -->
+    <Style x:Key="PrimaryButton" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource SignalBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
+        <Setter Property="FontSize" Value="12.5"/>
         <Setter Property="FontWeight" Value="SemiBold"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="16,7"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
-                    <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                    <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="{StaticResource NeutralHoverBrush}"/>
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource SignalHoverBrush}"/>
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Background" Value="{StaticResource NeutralHoverBrush}"/>
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource SignalPressedBrush}"/>
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Background" Value="#F3F5F6"/>
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource DisabledBrush}"/>
+                            <Setter Property="Foreground" Value="#F4F7F8"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -88,32 +120,119 @@
         </Setter>
     </Style>
 
-    <!-- 输入框：圆角4 + 浅边框 + 聚焦蓝边 -->
+    <!-- ===== 次按钮：白底 + 发丝边 + 主文字（比灰底更干净、更“仪器”） ===== -->
+    <Style x:Key="SecondaryButton" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
+        <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="16,7"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd" Background="{TemplateBinding Background}"
+                            BorderBrush="{StaticResource HairlineStrongBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="6" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource NeutralBrush}"/>
+                            <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource HairlineStrongBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource NeutralHoverBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource SurfaceAltBrush}"/>
+                            <Setter Property="Foreground" Value="{StaticResource FaintBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== 工具条按钮：透明 + hover 薄底 + 圆角6，命令条用 ===== -->
+    <Style x:Key="ToolbarButton" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
+        <Setter Property="FontFamily" Value="{StaticResource UiFont}"/>
+        <Setter Property="FontSize" Value="12.5"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="11,6"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="bd" Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource NeutralBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource NeutralHoverBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{StaticResource FaintBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== 输入框：白底 + 发丝边 + 聚焦深青边 + 圆角6 ===== -->
     <Style x:Key="InputBox" TargetType="TextBox">
         <Setter Property="Foreground" Value="{StaticResource InkBrush}"/>
-        <Setter Property="CaretBrush" Value="{StaticResource InkBrush}"/>
-        <Setter Property="SelectionBrush" Value="{StaticResource AccentBrush}"/>
+        <Setter Property="CaretBrush" Value="{StaticResource SignalBrush}"/>
+        <Setter Property="SelectionBrush" Value="{StaticResource SignalBrush}"/>
+        <Setter Property="FontSize" Value="12.5"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
-        <Setter Property="Padding" Value="6,4"/>
+        <Setter Property="Padding" Value="10,4"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
-                    <Border x:Name="bd" Background="White" BorderBrush="{StaticResource CardBorderBrush}"
-                            BorderThickness="1" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                    <Border x:Name="bd" Background="{StaticResource SurfaceBrush}" BorderBrush="{StaticResource HairlineStrongBrush}"
+                            BorderThickness="1" CornerRadius="6" Padding="{TemplateBinding Padding}">
                         <ScrollViewer x:Name="PART_ContentHost" Focusable="False"
                                       HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="bd" Property="BorderBrush" Value="#B8BEC6"/>
+                            <Setter TargetName="bd" Property="BorderBrush" Value="#AAB4BD"/>
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
-                            <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+                            <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource SignalBrush}"/>
+                            <Setter TargetName="bd" Property="BorderThickness" Value="1.4"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="bd" Property="Background" Value="{StaticResource SurfaceAltBrush}"/>
+                            <Setter Property="Foreground" Value="{StaticResource FaintBrush}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
+
+    <!-- ===== 兼容别名：保留旧 x:Key，指回新 token，避免 code-behind FindResource 失败 ===== -->
+    <SolidColorBrush x:Key="WindowBgBrush"         Color="#F7F9FA"/> <!-- 卡片标题栏底 -->
+    <SolidColorBrush x:Key="AppBgBrush"            Color="#F1F4F6"/>
+    <SolidColorBrush x:Key="AccentBrush"           Color="#0E7C86"/>
+    <SolidColorBrush x:Key="AccentHoverBrush"      Color="#0A626A"/>
+    <SolidColorBrush x:Key="CardBorderBrush"       Color="#DCE2E8"/>
+    <SolidColorBrush x:Key="NeutralBgBrush"        Color="#EDF1F3"/>
+    <SolidColorBrush x:Key="SubtleBlueBgBrush"     Color="#E4F0F1"/>
+    <SolidColorBrush x:Key="SubtleBlueBorderBrush" Color="#BFDDDF"/>
+    <SolidColorBrush x:Key="IconHoverBrush"        Color="#E1E7EA"/>
 
 </ResourceDictionary>

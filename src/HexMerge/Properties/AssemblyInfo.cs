@@ -51,6 +51,6 @@ using System.Windows;
 //可以指定所有这些值，也可以使用“生成号”和“修订号”的默认值
 //通过使用 "*"，如下所示:
 // [assembly: AssemblyVersion("1.0.*")]
-// ★ 版本号全局唯一来源：改这一处即可——窗口标题与 exe 文件属性版本均同步（如 V1.0.0.1）
-[assembly: AssemblyVersion("1.0.0.1")]
-[assembly: AssemblyFileVersion("1.0.0.1")]
+// ★ 版本号全局唯一来源：改这一处即可——窗口标题与 exe 文件属性版本均同步（如 V1.0.1）
+[assembly: AssemblyVersion("1.0.1")]
+[assembly: AssemblyFileVersion("1.0.1")]

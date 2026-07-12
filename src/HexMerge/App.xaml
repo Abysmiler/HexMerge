@@ -1,11 +1,17 @@
 <Application x:Class="HexMerge.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.modernwpf.com/2019"
              xmlns:local="clr-namespace:HexMerge"
              StartupUri="Views/FileSelectWindow.xaml">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
+                <!-- ModernWpf 打底：标准控件（滚动条/下拉/输入框/列表/菜单）一次性现代化。
+                     AccentColor = HexMerge 深青 Signal 主色，贯穿焦点/选中等系统态。 -->
+                <ui:ThemeResources RequestedTheme="Light" AccentColor="#0E7C86"/>
+                <ui:XamlControlsResources/>
+                <!-- HexMerge 自定义皮：token 与样式，放最后覆盖 ModernWpf，承载辨识度。 -->
                 <ResourceDictionary Source="Views/Theme.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>

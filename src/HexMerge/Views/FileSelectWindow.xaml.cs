@@ -34,6 +34,22 @@ namespace HexMerge.Views
             Close();
         }
 
+        /// <summary>清除某槽位路径（DAT 基地址随之由 VM 的路径 setter 自动清空/隐藏）。</summary>
+        private void Clear1_Click(object sender, RoutedEventArgs e) { _vm.Path1 = ""; }
+        private void Clear2_Click(object sender, RoutedEventArgs e) { _vm.Path2 = ""; }
+        private void Clear3_Click(object sender, RoutedEventArgs e) { _vm.Path3 = ""; }
+
+        /// <summary>路径框变化时横向滚到末尾，让文件名（路径尾部）始终可见——长路径不再只露开头。
+        /// 布局完成后再滚，确保 ExtentWidth 已更新。</summary>
+        private void PathBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            TextBox tb = sender as TextBox;
+            if (tb == null) return;
+            tb.Dispatcher.BeginInvoke(
+                new System.Action(() => tb.ScrollToHorizontalOffset(double.MaxValue)),
+                System.Windows.Threading.DispatcherPriority.Background);
+        }
+
         /// <summary>把上次的文件路径与 DAT 基地址恢复到各槽位。</summary>
         private void RestorePaths(string[] paths, uint[] baseAddrs)
         {

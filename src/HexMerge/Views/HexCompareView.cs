@@ -39,6 +39,9 @@ namespace HexMerge.Views
         private static readonly Brush TextGray = HexPalette.TextGray;
         private static readonly Brush TextHeader = HexPalette.TextHeader;
         private static readonly Brush Separator = HexPalette.Separator;
+        private static readonly Brush AddrChannel = HexPalette.AddrChannel;
+        private static readonly Brush Zebra = HexPalette.Zebra;
+        private static readonly Brush Divider = HexPalette.Divider;
 
         // ===== 状态 =====
         private CompareViewModel _vm;
@@ -260,8 +263,8 @@ namespace HexMerge.Views
                 for (int s = 0; s < segs.Count; s++)
                 {
                     var seg = segs[s];
-                    _segLines[f][s] = string.Format("Block {0}  Start at 0x{1:X}  Ends at 0x{2:X}  (Length: 0x{3:X}={4})",
-                        s, seg.Start, seg.End, seg.Length, seg.Length);
+                    _segLines[f][s] = string.Format("块{0}  0x{1:X}–0x{2:X}  {3} 字节",
+                        s, seg.Start, seg.End, seg.Length);
                     _segText[f][s] = MkTextAt(_segLines[f][s], TextHeader, dpi, 11);
                 }
                 if (segs.Count > maxSeg) maxSeg = segs.Count;
@@ -345,9 +348,11 @@ namespace HexMerge.Views
                 // 文件块之间的分隔线（贯穿视口）
                 if (f < fc - 1)
                     dc.DrawRectangle(Separator, null, new Rect(bx + _blockWidth + GapWidth / 2, 0, 1, _viewportH));
+                // 地址列/字节区之间的细分隔线（仪器脊柱，贯穿视口）
+                dc.DrawRectangle(Divider, null, new Rect(bx + _addrWidth, 0, 1, _viewportH));
             }
             // 表头分隔线
-            dc.DrawRectangle(TextHeader, null, new Rect(0, _headerHeight - 1, _viewportW, 1));
+            dc.DrawRectangle(Separator, null, new Rect(0, _headerHeight - 1, _viewportW, 1));
         }
 
         private void DrawRow(DrawingContext dc, CompareViewModel.Row row, int i)
@@ -365,16 +370,18 @@ namespace HexMerge.Views
             {
                 double bx = BlockX(f);
 
-                // 行背景：只白（有数据）/ 灰（整行缺失）。
+                // 行背景：有数据→白/斑马交替（便于横向扫读）；整行缺失→灰。
                 bool rowMissing = row.IsMissingPerFile != null && f < row.IsMissingPerFile.Length && row.IsMissingPerFile[f];
-                dc.DrawRectangle(rowMissing ? BgDeleted : BgWhite, null,
-                    new Rect(bx, y, _blockWidth, LineHeight));
+                Brush rowBg = rowMissing ? BgDeleted : ((i & 1) == 0 ? BgWhite : Zebra);
+                dc.DrawRectangle(rowBg, null, new Rect(bx, y, _blockWidth, LineHeight));
 
-                // 地址槽染色：段选定(RowChoice==f)→红；否则差异行且非灰块→深黄；灰块(整行缺失)不染
+                // 地址槽染色：段选定(RowChoice==f)→红；差异行且非灰块→深黄；否则淡青地址通道（脊柱）；灰块不染
                 if (row.RowChoice == f)
                     dc.DrawRectangle(BgChosen, null, new Rect(bx, y, _addrWidth, LineHeight));
                 else if (rowHasDiff && !rowMissing)
                     dc.DrawRectangle(CellConflictUnchosen, null, new Rect(bx, y, _addrWidth, LineHeight));
+                else if (!rowMissing)
+                    dc.DrawRectangle(AddrChannel, null, new Rect(bx, y, _addrWidth, LineHeight));
 
                 // 地址（黑字，居中于地址槽）
                 dc.DrawText(addr, new Point(bx + (_addrWidth - addr.Width) / 2, addrY));
@@ -526,19 +533,24 @@ namespace HexMerge.Views
         }
     }
 
-    /// <summary>比较视图统一配色（RGB 同 WinMerge Default.ini）；HexCompareView 与 LocationBar 共用，改色一处生效。</summary>
+    /// <summary>比较视图统一配色（在 WinMerge 底色上调校为更克制的仪器色）；HexCompareView 与 LocationBar 共用，改色一处生效。</summary>
     internal static class HexPalette
     {
         public static readonly Brush White = Freeze(Brushes.White);
-        public static readonly Brush Deleted = Freeze(new SolidColorBrush(Color.FromRgb(192, 192, 192)));   // #C0C0C0 缺失/删除
-        public static readonly Brush Conflict = Freeze(new SolidColorBrush(Color.FromRgb(239, 203, 5)));     // #EFCB05 冲突
-        public static readonly Brush Chosen = Freeze(new SolidColorBrush(Color.FromRgb(239, 119, 116)));     // #EF7774 段选定
-        public static readonly Brush CellSelected = Freeze(new SolidColorBrush(Color.FromRgb(74, 144, 217)));   // 深蓝 #4A90D9 选中行
-        public static readonly Brush ConflictUnchosen = Freeze(new SolidColorBrush(Color.FromRgb(255, 192, 0)));   // 深黄 #FFC000 差异(冲突未选/行内缺失/行内差异)
-        public static readonly Brush TextBlack = Freeze(Brushes.Black);
-        public static readonly Brush TextGray = Freeze(Brushes.Gray);
-        public static readonly Brush TextHeader = Freeze(new SolidColorBrush(Color.FromRgb(80, 80, 80)));
-        public static readonly Brush Separator = Freeze(new SolidColorBrush(Color.FromRgb(200, 200, 200)));
+        public static readonly Brush Deleted = Freeze(new SolidColorBrush(Color.FromRgb(212, 219, 225)));  // #D4DBE1 缺失/删除（冷灰，比纯灰更轻）
+        public static readonly Brush Conflict = Freeze(new SolidColorBrush(Color.FromRgb(242, 193, 78)));    // #F2C14E 冲突（沉稳琥珀，替代刺眼纯黄）
+        public static readonly Brush Chosen = Freeze(new SolidColorBrush(Color.FromRgb(232, 112, 95)));      // #E8705F 段选定（砖红）
+        public static readonly Brush CellSelected = Freeze(new SolidColorBrush(Color.FromRgb(62, 134, 200))); // #3E86C8 选中行（冷蓝，区别于青色 chrome）
+        public static readonly Brush ConflictUnchosen = Freeze(new SolidColorBrush(Color.FromRgb(245, 183, 46))); // #F5B72E 差异（冲突未选/行内缺失/行内差异）
+        public static readonly Brush TextBlack = Freeze(new SolidColorBrush(Color.FromRgb(23, 34, 46)));      // #17222E 主墨（比纯黑柔和）
+        public static readonly Brush TextGray = Freeze(new SolidColorBrush(Color.FromRgb(138, 148, 160)));    // #8A94A0 缺失字节
+        public static readonly Brush TextHeader = Freeze(new SolidColorBrush(Color.FromRgb(61, 71, 82)));     // #3D4752 表头
+        public static readonly Brush Separator = Freeze(new SolidColorBrush(Color.FromRgb(220, 226, 232)));   // #DCE2E8 文件块分隔（发丝）
+
+        // 仪器母题：地址通道 + 斑马 + 细分隔
+        public static readonly Brush AddrChannel = Freeze(new SolidColorBrush(Color.FromRgb(238, 243, 245))); // #EEF3F5 地址列淡青通道（脊柱）
+        public static readonly Brush Zebra = Freeze(new SolidColorBrush(Color.FromRgb(247, 249, 250)));       // #F7F9FA 斑马行（极淡）
+        public static readonly Brush Divider = Freeze(new SolidColorBrush(Color.FromRgb(230, 236, 239)));     // #E6ECEF 地址/字节细分隔
 
         private static Brush Freeze(Brush b) { b.Freeze(); return b; }
     }

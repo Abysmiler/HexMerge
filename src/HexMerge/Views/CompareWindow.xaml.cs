@@ -1,13 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Data;
 using System.Windows.Media.Effects;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using HexMerge.Models;
 using HexMerge.ViewModels;
@@ -15,9 +14,10 @@ using HexMerge.ViewModels;
 namespace HexMerge.Views
 {
     /// <summary>
-    /// 比较视图窗口：定位栏（鸟瞰，自绘）+ 自绘比较网格 <see cref="HexCompareView"/> + 滚动条。
+    /// 比较视图窗口：命令条 + 内存地图标尺（LocationBar，自绘）+ 自绘比较网格
+    /// <see cref="HexCompareView"/> + 滚动条 + 右侧停靠的冲突检查器。
     /// 渲染层全部自绘（零 DataGrid），滚动时只重画可见行，彻底消除卡顿。
-    /// 着色决策与行绘制在 HexCompareView / HexCellPaint；本类只负责窗口骨架、菜单、定位栏跳转。
+    /// 优先级/空隙填充改用命令条 ComboBox 直接绑定 VM，取代旧的动态菜单构建。
     /// </summary>
     public partial class CompareWindow : Window
     {
@@ -26,16 +26,6 @@ namespace HexMerge.Views
         private readonly uint[] _baseAddrs;     // 打开时的 DAT 基地址
         private HexCompareView _view;
         private LocationBar _locationBar;
-        private Window _navigatorWindow;   // 冲突导航浮窗（避免重复弹出）
-
-        // 行底配色统一到 HexPalette（与 HexCompareView 共用）；此处仅保留定位栏专属的视口指示器画笔
-        private static readonly SolidColorBrush ThumbBrush = MakeAlphaBrush(80, 90, 90, 90); // 定位栏视口指示器（半透明灰）
-        private static SolidColorBrush MakeAlphaBrush(byte a, int r, int g, int b)
-        {
-            SolidColorBrush br = new SolidColorBrush(Color.FromArgb(a, (byte)r, (byte)g, (byte)b));
-            br.Freeze();
-            return br;
-        }
 
         public CompareWindow(string[] paths, uint[] baseAddrs, MemoryImage[] images)
         {
@@ -45,186 +35,84 @@ namespace HexMerge.Views
             DataContext = _vm;
             _paths = paths;
             _baseAddrs = baseAddrs;
-            _vm.Loaded += OnVmLoaded;            // 数据就绪后再构建菜单、刷新布局
+            _vm.Loaded += OnVmLoaded;            // 数据就绪后刷新布局
             BuildHost();                          // 创建控件（数据未就绪时渲染空白）
             _vm.Load(paths, baseAddrs, images);   // 后台比对（解析结果复用，避免重复解析）
             _vm.ConfirmMergePreview = ShowMergePreview;
             Loaded += (s, e) => { _locationBar?.InvalidateVisual(); WarmupDropDown(); };
             Closed += (s, e) => { _vm.Loaded -= OnVmLoaded; }; // 关窗后退订，防后台完成时操作已释放控件
-            // 查找功能暂时屏蔽：
-            // PreviewKeyDown += (s, e) => { if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control) { OpenGotoAddress(); e.Handled = true; } };
         }
 
-        /// <summary>VM 数据加载完成（后台解析后）：构建依赖数据的菜单，并触发视图重新布局/渲染。</summary>
+        /// <summary>VM 数据加载完成（后台解析后）：触发视图重新布局/渲染。
+        /// 命令条 ComboBox 与检查器均绑定 VM，数据变化自动刷新，无需手工构建。</summary>
         private void OnVmLoaded()
         {
-            BuildMenus();
             _view?.InvalidateTextCache(); // 数据就绪：失效首次（空数据）建的文本缓存，触发重建段信息/文件名
             _view?.InvalidateMeasure();   // 重跑 ArrangeOverride（按实际 FileCount 铺字节宽）+ OnRender
             _locationBar?.InvalidateVisual();
-            ShowConflictNavigator();       // 比较完成后弹出冲突导航浮窗
+            // 下拉用 OneWay 绑定：PriorityOptions 是此刻才异步填好的，而 PrioritySelection 值未变过，
+            // OneWay 不会重推 → 若不显式回选，下拉会空白。这里在数据就绪后按 VM 当前值回选。
+            if (PriorityCombo != null) PriorityCombo.SelectedIndex = _vm.PrioritySelection;
+            if (FillCombo != null) FillCombo.SelectedIndex = _vm.FillSelection;
         }
 
-        /// <summary>冲突导航浮窗：显示冲突计数/当前序号、当前优先级，提供上/下一个冲突按钮；可拖动（ToolWindow 标题栏）。</summary>
-        private void ShowConflictNavigator()
+        /// <summary>命令条"检查器"：切换右侧停靠面板显隐。</summary>
+        private void ToggleInspector_Click(object sender, RoutedEventArgs e)
         {
-            if (_navigatorWindow != null) { _navigatorWindow.Activate(); return; } // 已开则前置，不重复弹
-
-            // 配色统一取自共享主题 Theme.xaml（App.Resources 全局合并）；改主题即全应用生效
-            Brush accent = (Brush)FindResource("AccentBrush");
-            Brush accentHover = (Brush)FindResource("AccentHoverBrush");
-            Brush muted = (Brush)FindResource("MutedBrush");
-            Brush ink = (Brush)FindResource("InkBrush");
-            Brush neutralBg = (Brush)FindResource("NeutralBgBrush");
-            Brush neutralHover = (Brush)FindResource("NeutralHoverBrush");
-            Brush cardBorder = (Brush)FindResource("CardBorderBrush");
-            Brush windowBg = (Brush)FindResource("WindowBgBrush");
-            Brush subtleBg = (Brush)FindResource("SubtleBlueBgBrush");
-            Brush subtleBorder = (Brush)FindResource("SubtleBlueBorderBrush");
-            Brush iconHover = (Brush)FindResource("IconHoverBrush");
-
-            Window w = new Window
-            {
-                WindowStyle = WindowStyle.None,
-                AllowsTransparency = true,
-                Background = Brushes.Transparent,
-                ShowInTaskbar = false,
-                ResizeMode = ResizeMode.NoResize,
-                SizeToContent = SizeToContent.WidthAndHeight,
-                Owner = this,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                DataContext = _vm
-            };
-
-            // 卡片：圆角 + 细边 + 投影
-            Border card = new Border
-            {
-                Width = 180,
-                Background = Brushes.White,
-                BorderBrush = cardBorder,
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(8),
-                Effect = new DropShadowEffect { BlurRadius = 16, ShadowDepth = 2, Opacity = 0.22, Color = Color.FromRgb(0, 0, 0) }
-            };
-            StackPanel root = new StackPanel();
-
-            // 标题栏（可拖动）+ 关闭
-            Border header = new Border
-            {
-                Background = windowBg,
-                CornerRadius = new CornerRadius(8, 8, 0, 0),
-                Padding = new Thickness(10, 5, 6, 5)
-            };
-            header.MouseLeftButtonDown += (s, e) => { try { if (e.LeftButton == MouseButtonState.Pressed) w.DragMove(); } catch { } };
-            Grid hg = new Grid();
-            hg.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            hg.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            TextBlock title = new TextBlock { Text = "冲突导航", FontWeight = FontWeights.SemiBold, Foreground = ink, VerticalAlignment = VerticalAlignment.Center };
-            Border closeBtn = MakeIconButton("✕", muted, iconHover);
-            closeBtn.MouseLeftButtonDown += (s, e) => { e.Handled = true; w.Close(); };
-            Grid.SetColumn(title, 0); Grid.SetColumn(closeBtn, 1);
-            hg.Children.Add(title); hg.Children.Add(closeBtn);
-            header.Child = hg;
-            root.Children.Add(header);
-
-            // 大字：当前 / 总数（绑定 ConflictInfoText）
-            StackPanel countArea = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 10, 0, 3) };
-            TextBlock bigCount = new TextBlock { FontSize = 16, FontWeight = FontWeights.Bold, Foreground = accent, HorizontalAlignment = HorizontalAlignment.Center };
-            bigCount.SetBinding(TextBlock.TextProperty, new Binding("ConflictInfoText"));
-            countArea.Children.Add(bigCount);
-            countArea.Children.Add(new TextBlock { Text = "当前 / 总数", FontSize = 10, Foreground = muted, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 1, 0, 0) });
-            root.Children.Add(countArea);
-
-            // 优先级框（绑定 CurrentPriorityName）
-            Border prioBox = new Border
-            {
-                Background = subtleBg,
-                BorderBrush = subtleBorder,
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(5),
-                Margin = new Thickness(10, 8, 10, 8),
-                Padding = new Thickness(8, 5, 8, 6)
-            };
-            StackPanel prioSp = new StackPanel();
-            prioSp.Children.Add(new TextBlock { Text = "当前优先级", FontSize = 10, Foreground = muted });
-            TextBlock prioVal = new TextBlock { FontSize = 9, FontWeight = FontWeights.SemiBold, Foreground = ink, Margin = new Thickness(0, 1, 0, 0), TextWrapping = TextWrapping.Wrap };
-            prioVal.SetBinding(TextBlock.TextProperty, new Binding("CurrentPriorityName"));
-            prioSp.Children.Add(prioVal);
-            prioBox.Child = prioSp;
-            root.Children.Add(prioBox);
-
-            // 按钮：上一个 / 下一个
-            Grid btnGrid = new Grid { Margin = new Thickness(10, 0, 10, 10) };
-            btnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            btnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(6, GridUnitType.Pixel) });
-            btnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            Border prev = MakeNavButton("‹ 上一个", neutralBg, neutralHover, ink);
-            prev.MouseLeftButtonUp += (s, e) => { int p = _vm.GoPrevConflict(_view.CurrentRowIndex); if (p >= 0) _view.GotoRow(p); };
-            Border next = MakeNavButton("下一个 ›", accent, accentHover, Brushes.White);
-            next.MouseLeftButtonUp += (s, e) => { int n = _vm.GoNextConflict(_view.CurrentRowIndex); if (n >= 0) _view.GotoRow(n); };
-            Grid.SetColumn(prev, 0); Grid.SetColumn(next, 2);
-            btnGrid.Children.Add(prev); btnGrid.Children.Add(next);
-            root.Children.Add(btnGrid);
-
-            card.Child = root;
-            w.Content = card;
-            w.Closed += (s, e) => { _navigatorWindow = null; MenuToggleNavigator.IsChecked = false; };
-            _navigatorWindow = w;
-            w.Show();
-            MenuToggleNavigator.IsChecked = true;
+            Inspector.Visibility = Inspector.Visibility == Visibility.Visible
+                ? Visibility.Collapsed : Visibility.Visible;
         }
 
-        /// <summary>菜单"冲突导航浮窗"：切换浮窗开/关。</summary>
-        private void ToggleNavigator_Click(object sender, RoutedEventArgs e)
+        /// <summary>优先级下拉：用 SelectionChanged 写回 VM（SelectedIndex 仅 OneWay 绑定）。
+        /// 因 PriorityOptions 是后台比对完成后才异步填充；若用默认 TwoWay，列表由空变满的瞬间
+        /// WPF 会把 SelectedIndex=-1 写回 VM，静默破坏合并仲裁。OneWay + 事件回写可彻底避免。</summary>
+        private void PriorityCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_navigatorWindow != null) _navigatorWindow.Close();
-            else ShowConflictNavigator();
+            if (_vm != null && PriorityCombo.SelectedIndex >= 0)
+                _vm.PrioritySelection = PriorityCombo.SelectedIndex;
         }
 
-        /// <summary>导航按钮（Border 模拟，圆角 + hover 变色）。</summary>
-        private static Border MakeNavButton(string text, Brush bg, Brush bgHover, Brush fg)
+        /// <summary>空隙填充下拉：同上，SelectionChanged 写回 VM，避免异步/重建时的假写回。</summary>
+        private void FillCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_vm != null && FillCombo.SelectedIndex >= 0)
+                _vm.FillSelection = FillCombo.SelectedIndex;
+        }
+
+        /// <summary>小图标按钮（对话框关闭）：Segoe MDL2 ChromeClose(0xE711)，运行时构造避免源码私用区字符。</summary>
+        private static Border MakeIconButton(Brush fg, Brush hoverBg)
         {
             Border b = new Border
             {
-                Height = 26,
-                CornerRadius = new CornerRadius(4),
-                Background = bg,
-                Cursor = Cursors.Hand
-            };
-            b.Child = new TextBlock { Text = text, Foreground = fg, FontSize = 11, FontWeight = FontWeights.Medium, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-            b.MouseEnter += (s, e) => b.Background = bgHover;
-            b.MouseLeave += (s, e) => b.Background = bg;
-            return b;
-        }
-
-        /// <summary>小图标按钮（关闭等）。</summary>
-        private static Border MakeIconButton(string text, Brush fg, Brush hoverBg)
-        {
-            Border b = new Border
-            {
-                Width = 22, Height = 22,
-                CornerRadius = new CornerRadius(4),
+                Width = 28, Height = 28,
+                CornerRadius = new CornerRadius(6),
                 Background = Brushes.Transparent,
                 Cursor = Cursors.Hand
             };
-            b.Child = new TextBlock { Text = text, Foreground = fg, FontSize = 12, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            b.Child = new TextBlock
+            {
+                Text = char.ConvertFromUtf32(0xE711),
+                FontFamily = new FontFamily("Segoe MDL2 Assets"),
+                Foreground = fg, FontSize = 11,
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+            };
             b.MouseEnter += (s, e) => b.Background = hoverBg;
             b.MouseLeave += (s, e) => b.Background = Brushes.Transparent;
             return b;
         }
 
-        /// <summary>构建主区：定位栏(56) + 自绘比较视图(1*) + 垂直滚动条(16)。</summary>
+        /// <summary>构建主区：内存地图标尺(72) + 自绘比较视图(1*) + 垂直滚动条(14)。</summary>
         private void BuildHost()
         {
             Grid host = CompareHost;
             host.ColumnDefinitions.Clear();
             host.Children.Clear();
 
-            host.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(56) });
+            host.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
             host.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            host.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(16) });
+            host.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(14) });
 
-            // 定位栏（鸟瞰，自绘：每行按状态显示同步颜色）
+            // 内存地图标尺（鸟瞰 + 地址刻度 + 冲突段带，自绘）
             _locationBar = new LocationBar();
             _locationBar.SetViewModel(_vm);
             _locationBar.MouseLeftButtonDown += Location_Click;
@@ -236,7 +124,7 @@ namespace HexMerge.Views
             // 自绘比较视图（承载所有文件列的地址 + 字节网格）
             _view = new HexCompareView();
             _view.SetViewModel(_vm);
-            _view.Scrolled += (s, e) => _locationBar.InvalidateVisual(); // 滚动/缩放时刷新定位栏视口指示器
+            _view.Scrolled += (s, e) => _locationBar.InvalidateVisual(); // 滚动/缩放时刷新标尺视口指示器
             Grid.SetColumn(_view, 1);
             host.Children.Add(_view);
             _locationBar.SetView(_view);
@@ -248,50 +136,7 @@ namespace HexMerge.Views
             host.Children.Add(sb);
         }
 
-        /// <summary>
-        /// 构建顶部菜单栏的动态子项：优先级（随参与文件数变化）、空隙填充（固定三项）。
-        /// 当前选择用勾选标记表示；点击即选定并关闭子菜单（单选语义）。
-        /// </summary>
-        private void BuildMenus()
-        {
-            // 优先级：直接读 VM 的 PriorityOptions（含末尾「无」项），单一数据源，与浮窗 CurrentPriorityName 一致
-            MenuPriority.Items.Clear();
-            for (int i = 0; i < _vm.PriorityOptions.Count; i++)
-            {
-                int sel = i;
-                MenuItem mi = new MenuItem();
-                mi.Header = _vm.PriorityOptions[i];
-                mi.IsCheckable = true;
-                mi.IsChecked = (_vm.PrioritySelection == i);
-                mi.Click += (s, e) => { _vm.PrioritySelection = sel; RefreshMenuChecks(); MenuPriority.IsSubmenuOpen = false; };
-                MenuPriority.Items.Add(mi);
-            }
-
-            // 空隙填充：不填充 / 0xFF / 0x00
-            string[] fills = { "不填充", "0xFF", "0x00" };
-            MenuFill.Items.Clear();
-            for (int i = 0; i < fills.Length; i++)
-            {
-                int sel = i;
-                MenuItem mi = new MenuItem();
-                mi.Header = fills[i];
-                mi.IsCheckable = true;
-                mi.IsChecked = (_vm.FillSelection == i);
-                mi.Click += (s, e) => { _vm.FillSelection = sel; RefreshMenuChecks(); MenuFill.IsSubmenuOpen = false; };
-                MenuFill.Items.Add(mi);
-            }
-        }
-
-        /// <summary>按当前 PrioritySelection / FillSelection 刷新菜单勾选标记。</summary>
-        private void RefreshMenuChecks()
-        {
-            for (int i = 0; i < MenuPriority.Items.Count; i++)
-                if (MenuPriority.Items[i] is MenuItem mp) mp.IsChecked = (_vm.PrioritySelection == i);
-            for (int i = 0; i < MenuFill.Items.Count; i++)
-                if (MenuFill.Items[i] is MenuItem mf) mf.IsChecked = (_vm.FillSelection == i);
-        }
-
-        /// <summary>定位栏：按住可像滚动条一样拖动。按下捕获鼠标并定位，移动持续跟随，抬起释放。</summary>
+        /// <summary>标尺：按住可像滚动条一样拖动。按下捕获鼠标并定位，移动持续跟随，抬起释放。</summary>
         private void Location_Click(object sender, MouseButtonEventArgs e)
         {
             FrameworkElement loc = (FrameworkElement)sender;
@@ -313,7 +158,7 @@ namespace HexMerge.Views
             if (loc.IsMouseCaptured) loc.ReleaseMouseCapture();
         }
 
-        /// <summary>按定位栏内的 Y 比例滚动视图（0=顶部，1=底部）。</summary>
+        /// <summary>按标尺内的 Y 比例滚动视图（0=顶部，1=底部）。</summary>
         private void LocationScroll(FrameworkElement loc, MouseEventArgs e)
         {
             if (loc.ActualHeight <= 0) return;
@@ -337,48 +182,6 @@ namespace HexMerge.Views
             if (prev >= 0) _view.GotoRow(prev);
         }
 
-        /* 查找功能暂时屏蔽（恢复时取消注释本块 + XAML 菜单项 + 构造里 Ctrl+F 监听即可）
-        /// <summary>"转到地址"（导航菜单）：弹小框输入地址，跳到对应行。</summary>
-        private void GotoAddress_Click(object sender, RoutedEventArgs e)
-        {
-            OpenGotoAddress();
-        }
-
-        /// <summary>转到地址对话框：输入地址（0x… 或 十六进制），确定后跳转居中。</summary>
-        private void OpenGotoAddress()
-        {
-            if (_view == null || _vm == null || _vm.Rows.Count == 0) return;
-
-            TextBox input = new TextBox { FontFamily = new FontFamily("Consolas") };
-            Window dlg = new Window
-            {
-                Title = AppInfo.Title + " — 转到地址",
-                Width = 340, Height = 165,
-                Owner = this,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                ResizeMode = ResizeMode.NoResize,
-                Background = new SolidColorBrush(Color.FromRgb(0xF0, 0xF0, 0xF0)),
-                FontSize = 12
-            };
-            StackPanel sp = new StackPanel { Margin = new Thickness(18) };
-            sp.Children.Add(new TextBlock { Text = "输入地址（十六进制，如 0x1000 或 1000）：", Margin = new Thickness(0, 0, 0, 8) });
-            sp.Children.Add(input);
-            StackPanel btns = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 12, 0, 0) };
-            Button ok = new Button { Content = "转到", Padding = new Thickness(18, 5, 18, 5), Margin = new Thickness(0, 0, 8, 0), IsDefault = true };
-            Button cancel = new Button { Content = "取消", Padding = new Thickness(18, 5, 18, 5), IsCancel = true };
-            ok.Click += (s, e) => dlg.DialogResult = true;
-            btns.Children.Add(ok);
-            btns.Children.Add(cancel);
-            sp.Children.Add(btns);
-            dlg.Content = sp;
-            input.Focus();
-
-            if (dlg.ShowDialog() != true) return;
-            int idx = _vm.GoToAddress(input.Text);
-            if (idx >= 0) _view.GotoRow(idx);
-        }
-        */
-
         /// <summary>"重新比较"：返回文件选择窗，并保留上次的文件路径与基地址。</summary>
         private void Recompare_Click(object sender, RoutedEventArgs e)
         {
@@ -387,75 +190,66 @@ namespace HexMerge.Views
             Close();
         }
 
-        /// <summary>"退出"：关闭窗口（最后一个窗口关闭即退出应用）。</summary>
-        private void Exit_Click(object sender, RoutedEventArgs e)
-        {
-            Close();
-        }
-
-        /// <summary>"关于"：弹出卡片式关于对话框（无边框圆角卡片，主题配色与浮窗一致）。</summary>
+        /// <summary>"关于"：弹出卡片式关于对话框（无边框圆角卡片，主题配色一致）。</summary>
         private void About_Click(object sender, RoutedEventArgs e)
         {
             Brush ink = (Brush)FindResource("InkBrush");
             Brush muted = (Brush)FindResource("MutedBrush");
-            Brush accent = (Brush)FindResource("AccentBrush");
             Brush cardBorder = (Brush)FindResource("CardBorderBrush");
             Brush headerBg = (Brush)FindResource("WindowBgBrush");
             Brush iconHover = (Brush)FindResource("IconHoverBrush");
 
             Window w = new Window
             {
+                Style = new Style(typeof(Window)), // 退出 ModernWpf 隐式窗口样式，避免卡片外再套一层标题栏+关闭按钮
                 WindowStyle = WindowStyle.None,
                 AllowsTransparency = true,
                 Background = Brushes.Transparent,
                 ShowInTaskbar = false,
                 ResizeMode = ResizeMode.NoResize,
                 SizeToContent = SizeToContent.Height,
-                Width = 300,
+                Width = 320,
                 Owner = this,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner
             };
-            w.PreviewKeyDown += (s, ev) => { if (ev.Key == Key.Escape) w.Close(); }; // Esc 关闭（无边框窗无系统 IsCancel 兜底）
+            w.PreviewKeyDown += (s, ev) => { if (ev.Key == Key.Escape) w.Close(); };
 
-            // 卡片：白底 + 浅边框 + 圆角 + 投影
             Border card = new Border
             {
                 Background = Brushes.White,
                 BorderBrush = cardBorder,
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(8),
-                Effect = new DropShadowEffect { BlurRadius = 16, ShadowDepth = 2, Opacity = 0.22, Color = Color.FromRgb(0, 0, 0) }
+                CornerRadius = new CornerRadius(12),
+                Effect = new DropShadowEffect { BlurRadius = 28, ShadowDepth = 3, Opacity = 0.20, Color = Color.FromRgb(0, 0, 0) }
             };
 
             Grid cardGrid = new Grid();
             cardGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             cardGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-            // 标题栏（可拖动）+ 关闭
             Border header = new Border
             {
                 Background = headerBg,
-                CornerRadius = new CornerRadius(8, 8, 0, 0),
-                Padding = new Thickness(14, 6, 6, 6)
+                CornerRadius = new CornerRadius(12, 12, 0, 0),
+                Padding = new Thickness(16, 8, 8, 8)
             };
             header.MouseLeftButtonDown += (s, ev) => { try { if (ev.LeftButton == MouseButtonState.Pressed) w.DragMove(); } catch { } };
             Grid hg = new Grid();
             hg.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             hg.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             TextBlock title = new TextBlock { Text = "关于", FontWeight = FontWeights.SemiBold, Foreground = ink, VerticalAlignment = VerticalAlignment.Center };
-            Border closeBtn = MakeIconButton("✕", muted, iconHover);
+            Border closeBtn = MakeIconButton(muted, iconHover);
             closeBtn.MouseLeftButtonDown += (s, ev) => { ev.Handled = true; w.Close(); };
             Grid.SetColumn(title, 0); Grid.SetColumn(closeBtn, 1);
             hg.Children.Add(title); hg.Children.Add(closeBtn);
             header.Child = hg;
             Grid.SetRow(header, 0);
 
-            // 内容：程序名 + 版本 + 简述 + 确定
-            StackPanel body = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 18, 0, 16) };
-            body.Children.Add(new TextBlock { Text = "HexMerge", FontSize = 18, FontWeight = FontWeights.Bold, Foreground = ink, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 2) });
+            StackPanel body = new StackPanel { HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 20, 0, 18) };
+            body.Children.Add(new TextBlock { Text = "HexMerge", FontSize = 20, FontWeight = FontWeights.Bold, Foreground = ink, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 2) });
             body.Children.Add(new TextBlock { Text = "版本 " + AppInfo.Version, FontSize = 11, Foreground = muted, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 12) });
-            body.Children.Add(new TextBlock { Text = "嵌入式芯片 HEX 文件合并工具", FontSize = 11, Foreground = muted, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 16) });
-            Button ok = new Button { Content = "确定", Width = 110, Padding = new Thickness(0, 6, 0, 6), Style = (Style)FindResource("PrimaryButton"), IsDefault = true, HorizontalAlignment = HorizontalAlignment.Center };
+            body.Children.Add(new TextBlock { Text = "嵌入式芯片 HEX 文件合并工具", FontSize = 12, Foreground = muted, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 18) });
+            Button ok = new Button { Content = "确定", Width = 120, Padding = new Thickness(0, 7, 0, 7), Style = (Style)FindResource("PrimaryButton"), IsDefault = true, HorizontalAlignment = HorizontalAlignment.Center };
             ok.Click += (s, ev) => w.Close();
             body.Children.Add(ok);
 
@@ -464,7 +258,7 @@ namespace HexMerge.Views
             cardGrid.Children.Add(body);
             card.Child = cardGrid;
             w.Content = card;
-            w.ShowDialog();
+            using (ModalScrim.Over(this)) { w.ShowDialog(); }
         }
 
         /// <summary>合并前预览弹窗：展示"输出段列表 + 摘要（段数/大小/范围/间隙）"，确认后返回 true。</summary>
@@ -473,7 +267,6 @@ namespace HexMerge.Views
             string fillName = _vm.FillSelection == 1 ? "0xFF" : (_vm.FillSelection == 2 ? "0x00" : "不填充");
             string range = p.TotalBytes == 0 ? "（无数据）"
                 : string.Format("0x{0:X8} ~ 0x{1:X8}", p.MinAddress, p.MaxAddress);
-            // 间隙摘要：只说明填充/超阈值情况。"到 DFlash 的间隙"由下方提示块单独详列，摘要不重复。
             string gapText;
             if (p.GapCount == 0)
             {
@@ -495,11 +288,9 @@ namespace HexMerge.Views
                 {
                     main += string.Format("（同区按 {0} 填充）", fillName);
                 }
-                // 否则（无可填、无超阈值，例如间隙全是到 DFlash）不追加括号，交由下方提示块说明
                 gapText = main;
             }
 
-            // 段列表：段与间隙各自成行，统一"地址~地址 + 字节"格式对齐；间隙行末标 (间隙)
             List<string> segStrs = new List<string>();
             for (int i = 0; i < p.Segments.Count; i++)
             {
@@ -522,43 +313,42 @@ namespace HexMerge.Views
 
             Window w = new Window
             {
+                Style = new Style(typeof(Window)), // 退出 ModernWpf 隐式窗口样式，避免卡片外再套一层标题栏+关闭按钮
                 WindowStyle = WindowStyle.None,
                 AllowsTransparency = true,
                 Background = Brushes.Transparent,
                 ShowInTaskbar = false,
                 ResizeMode = ResizeMode.NoResize,
-                Width = 480, Height = 460,
+                Width = 500, Height = 480,
                 Owner = this,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner
             };
             w.PreviewKeyDown += (s, ev) => { if (ev.Key == Key.Escape) { w.DialogResult = false; w.Close(); } };
 
-            // 卡片：白底 + 浅边框 + 圆角 + 投影
             Border card = new Border
             {
                 Background = Brushes.White,
                 BorderBrush = (Brush)FindResource("CardBorderBrush"),
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(8),
-                Effect = new DropShadowEffect { BlurRadius = 16, ShadowDepth = 2, Opacity = 0.22, Color = Color.FromRgb(0, 0, 0) }
+                CornerRadius = new CornerRadius(12),
+                Effect = new DropShadowEffect { BlurRadius = 28, ShadowDepth = 3, Opacity = 0.20, Color = Color.FromRgb(0, 0, 0) }
             };
             Grid cardGrid = new Grid();
             cardGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             cardGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-            // 标题栏（可拖动）+ 关闭
             Border header = new Border
             {
                 Background = (Brush)FindResource("WindowBgBrush"),
-                CornerRadius = new CornerRadius(8, 8, 0, 0),
-                Padding = new Thickness(14, 6, 6, 6)
+                CornerRadius = new CornerRadius(12, 12, 0, 0),
+                Padding = new Thickness(16, 8, 8, 8)
             };
             header.MouseLeftButtonDown += (s, ev) => { try { if (ev.LeftButton == MouseButtonState.Pressed) w.DragMove(); } catch { } };
             Grid hg = new Grid();
             hg.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             hg.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             TextBlock dlgTitle = new TextBlock { Text = "合并预览", FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource("InkBrush"), VerticalAlignment = VerticalAlignment.Center };
-            Border closeBtn = MakeIconButton("✕", (Brush)FindResource("MutedBrush"), (Brush)FindResource("IconHoverBrush"));
+            Border closeBtn = MakeIconButton((Brush)FindResource("MutedBrush"), (Brush)FindResource("IconHoverBrush"));
             closeBtn.MouseLeftButtonDown += (s, ev) => { ev.Handled = true; w.DialogResult = false; w.Close(); };
             Grid.SetColumn(dlgTitle, 0); Grid.SetColumn(closeBtn, 1);
             hg.Children.Add(dlgTitle); hg.Children.Add(closeBtn);
@@ -566,23 +356,21 @@ namespace HexMerge.Views
             Grid.SetRow(header, 0);
             cardGrid.Children.Add(header);
 
-            DockPanel root = new DockPanel { Margin = new Thickness(20, 14, 20, 16), LastChildFill = true };
+            DockPanel root = new DockPanel { Margin = new Thickness(22, 16, 22, 18), LastChildFill = true };
             Grid.SetRow(root, 1);
 
-            // 底部按钮
-            StackPanel btns = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 14, 0, 0) };
+            StackPanel btns = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 16, 0, 0) };
             DockPanel.SetDock(btns, Dock.Bottom);
-            Button cancel = new Button { Content = "取消", Width = 90, Padding = new Thickness(0, 6, 0, 6), Margin = new Thickness(0, 0, 8, 0), Style = secondaryBtn };
+            Button cancel = new Button { Content = "取消", Width = 92, Padding = new Thickness(0, 7, 0, 7), Margin = new Thickness(0, 0, 10, 0), Style = secondaryBtn };
             cancel.Click += (s, e) => { w.DialogResult = false; w.Close(); };
-            Button ok = new Button { Content = "确定合并", Width = 110, Padding = new Thickness(0, 6, 0, 6), Style = primaryBtn, IsDefault = true };
+            Button ok = new Button { Content = "确定合并", Width = 116, Padding = new Thickness(0, 7, 0, 7), Style = primaryBtn, IsDefault = true };
             ok.Click += (s, e) => w.DialogResult = true;
             btns.Children.Add(cancel);
             btns.Children.Add(ok);
             root.Children.Add(btns);
 
-            // 主体：标题 + 摘要 + 段列表
             StackPanel body = new StackPanel();
-            body.Children.Add(new TextBlock { Text = "合并预览 — 确认后选择保存路径", FontWeight = FontWeights.Bold, FontSize = 13, Margin = new Thickness(0, 0, 0, 12) });
+            body.Children.Add(new TextBlock { Text = "确认后选择保存路径", Foreground = (Brush)FindResource("MutedBrush"), Margin = new Thickness(0, 0, 0, 14) });
 
             Grid sum = new Grid();
             sum.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -593,30 +381,30 @@ namespace HexMerge.Views
             AddSummaryRow(sum, 3, "间隙", gapText);
             body.Children.Add(sum);
 
-            // 到 DFlash 的跨区间隙提示块：默认忽略（不填充），逐条列出地址范围
             if (p.DFlashGaps.Count > 0)
             {
                 Border dflash = new Border
                 {
-                    Background = new SolidColorBrush(Color.FromRgb(0xE7, 0xF0, 0xF7)), // 浅蓝底
-                    BorderBrush = new SolidColorBrush(Color.FromRgb(0x6A, 0x9A, 0xC8)),
+                    Background = (Brush)FindResource("InfoSoftBrush"),
+                    BorderBrush = (Brush)FindResource("InfoSoftBorderBrush"),
                     BorderThickness = new Thickness(1),
-                    CornerRadius = new CornerRadius(3),
-                    Padding = new Thickness(8),
-                    Margin = new Thickness(0, 10, 0, 0)
+                    CornerRadius = new CornerRadius(8),
+                    Padding = new Thickness(10),
+                    Margin = new Thickness(0, 12, 0, 0)
                 };
                 StackPanel dsp = new StackPanel();
                 dsp.Children.Add(new TextBlock
                 {
                     Text = "已忽略到 DFlash 的区间（通往数据 Flash，默认不填充）：",
-                    FontWeight = FontWeights.Bold
+                    FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource("InkBrush")
                 });
                 foreach (CompareViewModel.SkippedGapInfo g in p.DFlashGaps)
                 {
                     dsp.Children.Add(new TextBlock
                     {
                         Text = string.Format("  0x{0:X8} ~ 0x{1:X8}   {2} 字节", g.Start, g.End, g.Length.ToString("N0")),
-                        FontFamily = new FontFamily("Consolas"),
+                        FontFamily = (FontFamily)FindResource("MonoFont"),
+                        Foreground = (Brush)FindResource("InkBrush"),
                         Margin = new Thickness(0, 2, 0, 0)
                     });
                 }
@@ -624,31 +412,31 @@ namespace HexMerge.Views
                 body.Children.Add(dflash);
             }
 
-            // 跳过间隙提示块：仅当存在超阈值、未填充的间隙时显示，逐条列出地址范围并说明原因
             if (p.SkippedGaps.Count > 0)
             {
                 long thrMb = (long)(CompareViewModel.GapFillMaxBytes >> 20);
                 Border warn = new Border
                 {
-                    Background = new SolidColorBrush(Color.FromRgb(0xFD, 0xF1, 0xD6)), // 浅黄底，醒目但不刺眼
-                    BorderBrush = new SolidColorBrush(Color.FromRgb(0xE0, 0xC2, 0x40)),
+                    Background = (Brush)FindResource("WarningSoftBrush"),
+                    BorderBrush = (Brush)FindResource("WarningBrush"),
                     BorderThickness = new Thickness(1),
-                    CornerRadius = new CornerRadius(3),
-                    Padding = new Thickness(8),
-                    Margin = new Thickness(0, 10, 0, 0)
+                    CornerRadius = new CornerRadius(8),
+                    Padding = new Thickness(10),
+                    Margin = new Thickness(0, 12, 0, 0)
                 };
                 StackPanel wsp = new StackPanel();
                 wsp.Children.Add(new TextBlock
                 {
                     Text = string.Format("有 {0} 处间隙超过 {1}MB 阈值，未填充（避免输出膨胀）：", p.SkippedGaps.Count, thrMb),
-                    FontWeight = FontWeights.Bold
+                    FontWeight = FontWeights.SemiBold, Foreground = (Brush)FindResource("InkBrush")
                 });
                 foreach (CompareViewModel.SkippedGapInfo g in p.SkippedGaps)
                 {
                     wsp.Children.Add(new TextBlock
                     {
                         Text = string.Format("  0x{0:X8} ~ 0x{1:X8}   {2} 字节", g.Start, g.End, g.Length.ToString("N0")),
-                        FontFamily = new FontFamily("Consolas"),
+                        FontFamily = (FontFamily)FindResource("MonoFont"),
+                        Foreground = (Brush)FindResource("InkBrush"),
                         Margin = new Thickness(0, 2, 0, 0)
                     });
                 }
@@ -656,26 +444,41 @@ namespace HexMerge.Views
                 body.Children.Add(warn);
             }
 
-            body.Children.Add(new TextBlock { Text = string.Format("输出段列表（{0} 段，间隙已标出）：", p.SegmentCount), FontWeight = FontWeights.Bold, Margin = new Thickness(0, 14, 0, 6) });
+            body.Children.Add(new TextBlock { Text = string.Format("输出段列表（{0} 段，间隙已标出）", p.SegmentCount), Style = (Style)FindResource("Eyebrow"), Margin = new Thickness(0, 16, 0, 7) });
 
-            ListBox list = new ListBox { Height = 210, FontFamily = new FontFamily("Consolas") };
-            list.SetValue(ScrollViewer.HorizontalScrollBarVisibilityProperty, ScrollBarVisibility.Auto); // 间隙括号可能较长，允许横向滚动
+            Border listCard = new Border
+            {
+                BorderBrush = (Brush)FindResource("HairlineBrush"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(8),
+                ClipToBounds = true
+            };
+            ListBox list = new ListBox { Height = 200, FontFamily = (FontFamily)FindResource("MonoFont"), BorderThickness = new Thickness(0), Background = (Brush)FindResource("SurfaceAltBrush") };
+            list.SetValue(ScrollViewer.HorizontalScrollBarVisibilityProperty, ScrollBarVisibility.Auto);
             foreach (string ss in segStrs) list.Items.Add(ss);
-            body.Children.Add(list);
+            listCard.Child = list;
+            body.Children.Add(listCard);
 
-            root.Children.Add(body);
+            // 主体可滚动：DFlash / 超阈值间隙提示块数量不定，避免内容超出固定高度被裁切
+            ScrollViewer bodyScroll = new ScrollViewer
+            {
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                Content = body
+            };
+            root.Children.Add(bodyScroll);
             cardGrid.Children.Add(root);
             card.Child = cardGrid;
             w.Content = card;
-            return w.ShowDialog() == true;
+            using (ModalScrim.Over(this)) { return w.ShowDialog() == true; }
         }
 
         /// <summary>给摘要 Grid 加一行（标签 + 值）。</summary>
-        private static void AddSummaryRow(Grid g, int row, string label, string value)
+        private void AddSummaryRow(Grid g, int row, string label, string value)
         {
             g.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            TextBlock lab = new TextBlock { Text = label + "：", Foreground = Brushes.Gray, Margin = new Thickness(0, 3, 0, 3) };
-            TextBlock val = new TextBlock { Text = value, Margin = new Thickness(14, 3, 0, 3) };
+            TextBlock lab = new TextBlock { Text = label, Foreground = (Brush)FindResource("MutedBrush"), Margin = new Thickness(0, 4, 0, 4) };
+            TextBlock val = new TextBlock { Text = value, Foreground = (Brush)FindResource("InkBrush"), Margin = new Thickness(16, 4, 0, 4) };
             Grid.SetRow(lab, row); Grid.SetColumn(lab, 0);
             Grid.SetRow(val, row); Grid.SetColumn(val, 1);
             g.Children.Add(lab);
@@ -708,11 +511,25 @@ namespace HexMerge.Views
             }));
         }
 
-        /// <summary>定位栏：自绘，每行按状态显示同步颜色（差异黄绿/缺失灰），高效渲染。</summary>
+        /// <summary>
+        /// 内存地图标尺（自绘，签名元素）：把整份文档压缩成一条竖直标尺——
+        /// 右侧色带按行状态显示同步颜色（冲突黄 / 缺失灰 / 选定红）；
+        /// 左侧按等分位置标出真实 hex 地址刻度；叠加视口指示器随滚动实时跟随。
+        /// </summary>
         private class LocationBar : FrameworkElement
         {
             private CompareViewModel _vm;
             private HexCompareView _view;
+
+            // 标尺专属画笔（冻结复用）
+            private static readonly Brush RulerBg = Freeze(new SolidColorBrush(Color.FromRgb(0xE7, 0xEC, 0xEF)));   // 下沉底
+            private static readonly Brush AxisBrush = Freeze(new SolidColorBrush(Color.FromRgb(0xC7, 0xCF, 0xD8))); // 刻度轴
+            private static readonly Brush LabelBrush = Freeze(new SolidColorBrush(Color.FromRgb(0x5A, 0x66, 0x73)));// 地址标签
+            private static readonly Brush ThumbBrush = Freeze(new SolidColorBrush(Color.FromArgb(64, 0x0E, 0x7C, 0x86))); // 视口指示器（青，半透明）
+            private static readonly Brush ThumbBorder = Freeze(new SolidColorBrush(Color.FromArgb(150, 0x0E, 0x7C, 0x86)));
+            private static readonly Typeface RulerFace = new Typeface(new FontFamily("Consolas"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
+
+            private static Brush Freeze(Brush b) { b.Freeze(); return b; }
 
             public void SetViewModel(CompareViewModel vm)
             {
@@ -726,14 +543,17 @@ namespace HexMerge.Views
             {
                 double w = ActualWidth;
                 double h = ActualHeight > 0 ? ActualHeight : 400;
-                dc.DrawRectangle(Brushes.WhiteSmoke, null, new Rect(0, 0, w, h));
+                dc.DrawRectangle(RulerBg, null, new Rect(0, 0, w, h));
 
-                // 鸟瞰：每行颜色以第一个文件（file 0）为准，与主视图第一列行背景一致
-                if (_vm != null && _vm.Rows.Count > 0)
+                double bandW = 12;
+                double bandX = w - bandW - 1;   // 右侧色带
+                double axisX = bandX - 4;       // 刻度轴（色带与标签之间）
+
+                int n = _vm != null ? _vm.Rows.Count : 0;
+                if (n > 0)
                 {
-                    int n = _vm.Rows.Count;
                     double scale = h / n;
-                    // 合并连续同色段绘制：DrawRectangle 次数从行数降到颜色变化数（大文件显著减少）
+                    // 色带：合并连续同色段绘制，DrawRectangle 次数从行数降到颜色变化数
                     int i = 0;
                     while (i < n)
                     {
@@ -741,24 +561,53 @@ namespace HexMerge.Views
                         int j = i + 1;
                         while (j < n && LocationBrushFor(HexCellPaint.ResolveRowBg(_vm.Rows[j], 0)) == b) j++;
                         if (b != null)
-                            dc.DrawRectangle(b, null, new Rect(3, i * scale, w - 6, (j - i) * scale));
+                            dc.DrawRectangle(b, null, new Rect(bandX, i * scale, bandW, Math.Max(1, (j - i) * scale)));
                         i = j;
+                    }
+
+                    // 刻度轴
+                    dc.DrawRectangle(AxisBrush, null, new Rect(axisX, 0, 1, h));
+
+                    // 地址刻度标签：按高度等分，标出该位置行的真实地址
+                    double dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+                    if (dpi <= 0) dpi = 1.0;
+                    int divs = Math.Max(2, Math.Min(10, (int)(h / 68)));
+                    for (int d = 0; d <= divs; d++)
+                    {
+                        double frac = (double)d / divs;
+                        int rowIdx = (int)Math.Round(frac * (n - 1));
+                        if (rowIdx < 0) rowIdx = 0; else if (rowIdx > n - 1) rowIdx = n - 1;
+                        double y = frac * h;
+
+                        // 刻度短线
+                        dc.DrawRectangle(AxisBrush, null, new Rect(axisX - 3, Clamp(y, 0, h - 1), 3, 1));
+
+                        FormattedText ft = new FormattedText(
+                            _vm.Rows[rowIdx].Address.ToString("X8"),
+                            CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                            RulerFace, 9.5, LabelBrush, dpi);
+                        double ty = y - ft.Height / 2;
+                        if (d == 0) ty = 1;                        // 顶部标签贴顶
+                        if (d == divs) ty = h - ft.Height - 1;     // 底部标签贴底
+                        dc.DrawText(ft, new Point(4, ty));
                     }
                 }
 
-                // 视口指示器（拇指）：标记当前可见区在文档中的位置与范围，滚动时实时跟随
+                // 视口指示器（拇指）：标记当前可见区在文档中的位置与范围
                 if (_view != null)
                 {
                     _view.GetViewportFraction(out double topFrac, out double hFrac);
-                    double thumbH = Math.Max(10, hFrac * h);
+                    double thumbH = Math.Max(12, hFrac * h);
                     double thumbTop = topFrac * h;
                     if (thumbTop + thumbH > h) thumbTop = h - thumbH;
                     if (thumbTop < 0) thumbTop = 0;
-                    dc.DrawRectangle(ThumbBrush, null, new Rect(1, thumbTop, w - 2, thumbH));
+                    dc.DrawRectangle(ThumbBrush, new Pen(ThumbBorder, 1), new Rect(1.5, thumbTop + 0.5, w - 3, thumbH - 1));
                 }
             }
 
-            /// <summary>第一个文件行背景 → 定位栏画笔（White 不画）。</summary>
+            private static double Clamp(double v, double lo, double hi) { return v < lo ? lo : (v > hi ? hi : v); }
+
+            /// <summary>第一个文件行背景 → 标尺色带画笔（White 不画）。</summary>
             private static Brush LocationBrushFor(HexCellPaint.RowBg bg)
             {
                 switch (bg)

@@ -3,6 +3,9 @@
 [Oo]bj/
 Bin.Net/
 
+# Local tooling scratch (nuget.exe, verification screenshots)
+.tools/
+
 # NuGet packages (packages.config mode - restored on build)
 packages/
 

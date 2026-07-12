@@ -38,6 +38,7 @@ namespace HexMerge.Views
 
             Window w = new Window
             {
+                Style = new Style(typeof(Window)), // 退出 ModernWpf 隐式窗口样式，避免卡片外再套一层标题栏+关闭按钮
                 WindowStyle = WindowStyle.None,
                 AllowsTransparency = true,
                 Background = Brushes.Transparent,
@@ -55,8 +56,8 @@ namespace HexMerge.Views
                 Background = Brushes.White,
                 BorderBrush = cardBorder,
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(8),
-                Effect = new DropShadowEffect { BlurRadius = 16, ShadowDepth = 2, Opacity = 0.22, Color = Color.FromRgb(0, 0, 0) }
+                CornerRadius = new CornerRadius(12),
+                Effect = new DropShadowEffect { BlurRadius = 28, ShadowDepth = 3, Opacity = 0.20, Color = Color.FromRgb(0, 0, 0) }
             };
 
             Grid cardGrid = new Grid();
@@ -67,15 +68,15 @@ namespace HexMerge.Views
             Border header = new Border
             {
                 Background = headerBg,
-                CornerRadius = new CornerRadius(8, 8, 0, 0),
-                Padding = new Thickness(14, 6, 6, 6)
+                CornerRadius = new CornerRadius(12, 12, 0, 0),
+                Padding = new Thickness(16, 8, 8, 8)
             };
             header.MouseLeftButtonDown += (s, ev) => { try { if (ev.LeftButton == MouseButtonState.Pressed) w.DragMove(); } catch { } };
             Grid hg = new Grid();
             hg.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             hg.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             TextBlock titleTb = new TextBlock { Text = title, FontWeight = FontWeights.SemiBold, Foreground = ink, VerticalAlignment = VerticalAlignment.Center };
-            Border closeBtn = MakeIconButton("✕", muted, iconHover);
+            Border closeBtn = MakeIconButton(muted, iconHover);
             closeBtn.MouseLeftButtonDown += (s, ev) => { ev.Handled = true; w.Close(); };
             Grid.SetColumn(titleTb, 0); Grid.SetColumn(closeBtn, 1);
             hg.Children.Add(titleTb); hg.Children.Add(closeBtn);
@@ -107,21 +108,27 @@ namespace HexMerge.Views
             // Esc：消息模式直接关，确认模式返回 false
             w.PreviewKeyDown += (s, ev) => { if (ev.Key == Key.Escape) { if (confirmMode) w.DialogResult = false; w.Close(); } };
 
-            w.ShowDialog();
+            using (ModalScrim.Over(owner)) { w.ShowDialog(); }
             return confirmMode && w.DialogResult == true;
         }
 
-        /// <summary>小图标按钮（关闭等）—— 与 CompareWindow.MakeIconButton 同风格，此处自包含。</summary>
-        private static Border MakeIconButton(string text, Brush fg, Brush hoverBg)
+        /// <summary>小图标按钮（关闭）：Segoe MDL2 ChromeClose(0xE711)，运行时构造避免源码私用区字符。</summary>
+        private static Border MakeIconButton(Brush fg, Brush hoverBg)
         {
             Border b = new Border
             {
-                Width = 22, Height = 22,
-                CornerRadius = new CornerRadius(4),
+                Width = 28, Height = 28,
+                CornerRadius = new CornerRadius(6),
                 Background = Brushes.Transparent,
                 Cursor = Cursors.Hand
             };
-            b.Child = new TextBlock { Text = text, Foreground = fg, FontSize = 12, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            b.Child = new TextBlock
+            {
+                Text = char.ConvertFromUtf32(0xE711),
+                FontFamily = new FontFamily("Segoe MDL2 Assets"),
+                Foreground = fg, FontSize = 11,
+                HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center
+            };
             b.MouseEnter += (s, e) => b.Background = hoverBg;
             b.MouseLeave += (s, e) => b.Background = Brushes.Transparent;
             return b;

@@ -9,10 +9,10 @@ namespace HexMerge
     /// </summary>
     public static class AppInfo
     {
-        /// <summary>当前版本号（如 "1.0.0.1"），来自程序集 AssemblyVersion。</summary>
+        /// <summary>当前版本号（三段式，如 "1.0.1"），来自程序集 AssemblyVersion。</summary>
         public static string Version
         {
-            get { return typeof(AppInfo).Assembly.GetName().Version.ToString(); }
+            get { return typeof(AppInfo).Assembly.GetName().Version.ToString(3); }
         }
 
         /// <summary>统一窗口标题："HexMerge V{版本}"。</summary>
